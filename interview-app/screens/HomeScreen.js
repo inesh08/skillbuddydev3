@@ -16,6 +16,8 @@ import { Ionicons } from '@expo/vector-icons';
 import { useAuthStore } from '../services/Zuststand';
 import AnimatedBackground from '../components/AnimatedBackground';
 import apiService from '../services/apiService';
+import { useProgress } from '../hooks/useProgress';
+import ProgressBar from '../components/atoms/ProgressBar';
 
 // Import logo assets
 const githubLogo = require('../assets/github.png');
@@ -28,6 +30,7 @@ const communityLogo = require('../assets/community.png');
 export default function HomeScreen() {
   const navigation = useNavigation();
   const { user, isLoggedIn } = useAuthStore();
+  const { profileCompletionPercentage, xpProgressPercentage, currentLevel, totalXP } = useProgress();
   const [socialLinks, setSocialLinks] = useState({});
   const [showInputModal, setShowInputModal] = useState(false);
   const [currentInputType, setCurrentInputType] = useState('');
@@ -180,6 +183,25 @@ export default function HomeScreen() {
             </TouchableOpacity>
           </View>
         </View>
+
+        {/* Progress Section */}
+        {isLoggedIn && user && (
+          <View style={styles.progressSection}>
+            <Text style={styles.progressTitle}>Your Progress</Text>
+            <View style={styles.progressCards}>
+              <View style={styles.progressCard}>
+                <Text style={styles.progressLabel}>Profile Completion</Text>
+                <ProgressBar percent={profileCompletionPercentage} />
+                <Text style={styles.progressValue}>{profileCompletionPercentage}%</Text>
+              </View>
+              <View style={styles.progressCard}>
+                <Text style={styles.progressLabel}>Level {currentLevel}</Text>
+                <ProgressBar percent={xpProgressPercentage} />
+                <Text style={styles.progressValue}>{totalXP} XP</Text>
+              </View>
+            </View>
+          </View>
+        )}
 
         {/* Main Actions */}
         <View style={styles.actionsContainer}>
@@ -391,6 +413,40 @@ const styles = StyleSheet.create({
     fontSize: 20,
     color: '#00ff00',
     fontWeight: '600',
+  },
+  progressSection: {
+    marginBottom: 30,
+    backgroundColor: '#1a1a1a',
+    padding: 20,
+    borderRadius: 15,
+  },
+  progressTitle: {
+    fontSize: 20,
+    color: '#00ff00',
+    fontWeight: '600',
+    marginBottom: 15,
+    textAlign: 'center',
+  },
+  progressCards: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+  },
+  progressCard: {
+    flex: 1,
+    marginHorizontal: 5,
+    alignItems: 'center',
+  },
+  progressLabel: {
+    fontSize: 14,
+    color: '#fff',
+    marginBottom: 8,
+    textAlign: 'center',
+  },
+  progressValue: {
+    fontSize: 16,
+    color: '#00ff00',
+    fontWeight: '600',
+    marginTop: 5,
   },
   actionsContainer: { marginBottom: 30 },
   primaryButton: {

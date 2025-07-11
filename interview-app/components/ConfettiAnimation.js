@@ -70,6 +70,7 @@ const styles = StyleSheet.create({
     color: '#00ff00',
     fontWeight: 'bold',
     marginBottom: 10,
+    textAlign: 'center',
   },
   subText: {
     fontSize: 16,

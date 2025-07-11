@@ -1,8 +1,7 @@
-// context/OnboardingContext.js (No JWT Token Verification)
+// context/OnboardingContext.js (No API calls during onboarding)
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useAuthStore } from '../services/Zuststand';
-import apiService from '../services/apiService';
 
 const OnboardingContext = createContext();
 
@@ -93,27 +92,6 @@ export const OnboardingProvider = ({ children }) => {
     }
   };
 
-  const updateProfileInBackend = async (profileData) => {
-    if (!isAuthenticated()) {
-      throw new Error('User not authenticated');
-    }
-
-    setIsLoading(true);
-    setError(null);
-
-    try {
-      const response = await apiService.updateProfile(profileData);
-      console.log('Profile updated successfully:', response);
-      return response;
-    } catch (error) {
-      console.error('Error updating profile:', error);
-      setError(error.message);
-      throw error;
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
   const saveStep1Data = async (name) => {
     try {
       if (!name || !name.trim()) {
@@ -121,11 +99,6 @@ export const OnboardingProvider = ({ children }) => {
       }
 
       await saveOnboardingData({ name: name.trim() });
-      
-      if (isAuthenticated()) {
-        await updateProfileInBackend({ name: name.trim() });
-      }
-      
       setCurrentStep(2);
     } catch (error) {
       console.error('Error saving step 1 data:', error);
@@ -146,11 +119,6 @@ export const OnboardingProvider = ({ children }) => {
       }
 
       await saveOnboardingData({ profession });
-      
-      if (isAuthenticated()) {
-        await updateProfileInBackend({ profession });
-      }
-      
       setCurrentStep(3);
     } catch (error) {
       console.error('Error saving step 2 data:', error);
@@ -169,19 +137,7 @@ export const OnboardingProvider = ({ children }) => {
         throw new Error('You can select up to 3 career choices');
       }
 
-      const validChoices = ['Software Developer', 'Data Analyst', 'Digital Marketer', 'UI/UX Designer', 'Product Manager'];
-      const invalidChoices = career_choices.filter(choice => !validChoices.includes(choice));
-      
-      if (invalidChoices.length > 0) {
-        throw new Error('Invalid career choices selected');
-      }
-
       await saveOnboardingData({ career_choices });
-      
-      if (isAuthenticated()) {
-        await updateProfileInBackend({ career_choices });
-      }
-      
       setCurrentStep(4);
     } catch (error) {
       console.error('Error saving step 3 data:', error);
@@ -213,11 +169,6 @@ export const OnboardingProvider = ({ children }) => {
       };
 
       await saveOnboardingData(profileData);
-      
-      if (isAuthenticated()) {
-        await updateProfileInBackend(profileData);
-      }
-      
       setCurrentStep(5);
     } catch (error) {
       console.error('Error saving step 4 data:', error);
@@ -229,16 +180,6 @@ export const OnboardingProvider = ({ children }) => {
   const completeOnboarding = async () => {
     try {
       setIsLoading(true);
-      
-      // If user is authenticated, make sure all data is synced to backend
-      if (isAuthenticated() && onboardingData) {
-        try {
-          await updateProfileInBackend(onboardingData);
-        } catch (error) {
-          console.error('Failed to sync final onboarding data:', error);
-          // Don't throw error here, allow onboarding to complete
-        }
-      }
       
       // Mark onboarding as complete for this user
       const completionKey = user?.id ? `onboardingComplete_${user.id}` : 'onboardingComplete';
@@ -258,14 +199,14 @@ export const OnboardingProvider = ({ children }) => {
       });
       setCurrentStep(1);
       setError(null);
+      setIsLoading(false);
       
-      return true;
+      console.log('Onboarding completed successfully');
     } catch (error) {
       console.error('Error completing onboarding:', error);
       setError(error.message);
-      throw error;
-    } finally {
       setIsLoading(false);
+      throw error;
     }
   };
 
@@ -286,9 +227,9 @@ export const OnboardingProvider = ({ children }) => {
       });
       setCurrentStep(1);
       setError(null);
+      setIsLoading(false);
     } catch (error) {
       console.error('Error resetting onboarding:', error);
-      setError(error.message);
     }
   };
 
@@ -298,23 +239,16 @@ export const OnboardingProvider = ({ children }) => {
     }
   };
 
-  const goToPreviousStep = () => {
-    if (currentStep > 1) {
-      setCurrentStep(currentStep - 1);
-    }
-  };
-
   const isStepComplete = (step) => {
     switch (step) {
       case 1:
-        return onboardingData.name && onboardingData.name.trim() !== '';
+        return !!onboardingData.name;
       case 2:
-        return onboardingData.profession && onboardingData.profession !== '';
+        return !!onboardingData.profession;
       case 3:
         return onboardingData.career_choices && onboardingData.career_choices.length > 0;
       case 4:
-        return onboardingData.college_name && onboardingData.college_name.trim() !== '' &&
-               onboardingData.college_email && onboardingData.college_email.trim() !== '';
+        return !!onboardingData.college_name && !!onboardingData.college_email;
       default:
         return false;
     }
@@ -322,22 +256,20 @@ export const OnboardingProvider = ({ children }) => {
 
   const getCompletionPercentage = () => {
     let completedSteps = 0;
-    const totalSteps = 4;
-    
-    if (isStepComplete(1)) completedSteps++;
-    if (isStepComplete(2)) completedSteps++;
-    if (isStepComplete(3)) completedSteps++;
-    if (isStepComplete(4)) completedSteps++;
-    
-    return Math.round((completedSteps / totalSteps) * 100);
+    for (let i = 1; i <= 4; i++) {
+      if (isStepComplete(i)) {
+        completedSteps++;
+      }
+    }
+    return (completedSteps / 4) * 100;
   };
 
-  // Check if user is authenticated for backend operations
   const canSyncToBackend = () => {
-    return isAuthenticated();
+    return isAuthenticated() && onboardingData && Object.values(onboardingData).some(value => 
+      value && (Array.isArray(value) ? value.length > 0 : true)
+    );
   };
 
-  // Check if onboarding is complete for current user
   const isOnboardingComplete = async () => {
     try {
       const completionKey = user?.id ? `onboardingComplete_${user.id}` : 'onboardingComplete';
@@ -349,35 +281,28 @@ export const OnboardingProvider = ({ children }) => {
     }
   };
 
-  const value = {
-    // State
-    onboardingData,
-    currentStep,
-    isLoading,
-    error,
-    
-    // Actions
-    saveStep1Data,
-    saveStep2Data,
-    saveStep3Data,
-    saveStep4Data,
-    completeOnboarding,
-    resetOnboarding,
-    skipToStep,
-    goToPreviousStep,
-    
-    // Helpers
-    isStepComplete,
-    getCompletionPercentage,
-    canSyncToBackend,
-    isOnboardingComplete,
-    
-    // Direct backend update (for advanced usage)
-    updateProfileInBackend,
-  };
-
   return (
-    <OnboardingContext.Provider value={value}>
+    <OnboardingContext.Provider
+      value={{
+        currentStep,
+        onboardingData,
+        isLoading,
+        error,
+        saveStep1Data,
+        saveStep2Data,
+        saveStep3Data,
+        saveStep4Data,
+        completeOnboarding,
+        resetOnboarding,
+        skipToStep,
+        isStepComplete,
+        getCompletionPercentage,
+        canSyncToBackend,
+        isOnboardingComplete,
+        setError,
+        clearError: () => setError(null),
+      }}
+    >
       {children}
     </OnboardingContext.Provider>
   );

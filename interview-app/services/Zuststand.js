@@ -81,7 +81,7 @@ export const useAuthStore = create((set, get) => ({
       console.log('Zustand signup completed successfully');
       return { success: true };
     } catch (error) {
-      console.error('Zustand signup error:', error);
+      // console.error('Zustand signup error:', error);
       set({ isLoading: false });
       return { success: false, error: error.message || 'Could not create account!' };
     }

@@ -3,12 +3,12 @@ import { View, StyleSheet, SafeAreaView } from 'react-native';
 import PeppyImage from '../atoms/PeppyImage';
 import ChatBubble from '../molecules/ChatBubble';
 
-export default function PageLayout({ children, message = "Hey there!" }) {
+export default function PageLayout({ children, message = "Hey there!", higher = false }) {
   return (
     <SafeAreaView style={styles.safeArea}>
       <View style={styles.container}>
-        <PeppyImage />
-        <View style={styles.chatContainer}>
+        <PeppyImage higher={higher} />
+        <View style={[styles.chatContainer, higher && { top: 30 } || { top: 80 }] }>
           <ChatBubble message={message} />
         </View>
         {children}
@@ -28,7 +28,6 @@ const styles = StyleSheet.create({
   },
   chatContainer: {
     position: 'absolute',
-    top: 135,
     left: 100,
     zIndex: 100,
   },

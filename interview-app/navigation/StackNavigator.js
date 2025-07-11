@@ -15,6 +15,7 @@ import SignupScreen from '../screens/SignupScreen';
 import ProfileScreen from '../screens/ProfileScreen';
 import SocialLinksScreen from '../screens/SocialLinksScreen';
 import ResumeUploadScreen from '../screens/ResumeUploadScreen';
+import AnalysisScreen from '../screens/AnalysisScreen';
 import InterviewScreen from '../screens/InterviewScreen';
 import InterviewResultsScreen from '../screens/InterviewResultsScreen';
 import DataAnalystScreen from '../screens/DataAnalystScreen';
@@ -164,6 +165,14 @@ export default function StackNavigation() {
         <Stack.Screen 
           name="ResumeUpload" 
           component={ResumeUploadScreen}
+          options={{
+            gestureDirection: 'horizontal',
+          }}
+        />
+        
+        <Stack.Screen 
+          name="AnalysisScreen" 
+          component={AnalysisScreen}
           options={{
             gestureDirection: 'horizontal',
           }}

@@ -19,6 +19,7 @@ import PageLayout from '../../components/layouts/PageLayout';
 import GreenButton from '../../components/atoms/GreenButton';
 import { MaterialCommunityIcons, FontAwesome5, Ionicons, Entypo, FontAwesome } from '@expo/vector-icons';
 import { useOnboardingStore } from '../../services/onboardingStore';
+import { useProgress } from '../../hooks/useProgress';
 
 const { width, height } = Dimensions.get('window');
 
@@ -136,6 +137,8 @@ export default function CareerChoicesScreen({ navigation }) {
     loadOnboardingData,
     clearError 
   } = useOnboardingStore();
+  
+  const { getOnboardingProgress } = useProgress();
 
   useEffect(() => {
     // Load saved onboarding data
@@ -270,17 +273,11 @@ export default function CareerChoicesScreen({ navigation }) {
       <AnimatedBackground intensity="medium">
         <PageLayout message="What are your career choices?">
           <View style={styles.innerContainer}>
-            {/* Back Button */}
-            <TouchableOpacity
-              style={styles.backButton}
-              onPress={() => navigation.goBack()}
-            >
-              <Text style={styles.backButtonText}>← Back</Text>
-            </TouchableOpacity>
             
-            <View style={styles.progressContainer}>
-              <ProgressBar percent={75} />
-            </View>
+            
+                            <View style={styles.progressContainer}>
+                  <ProgressBar percent={getOnboardingProgress(3)} />
+                </View>
 
             {/* Category Carousel */}
             <View style={styles.carouselContainer}>
@@ -338,7 +335,10 @@ export default function CareerChoicesScreen({ navigation }) {
                   {filteredJobRoles.length === 0 ? (
                     <Text style={styles.noResultsText}>No career options found.</Text>
                   ) : (
-                    filteredJobRoles.map(({ role, category }) => renderJobRoleCard(role, category))
+                    filteredJobRoles.map(({ role, category }) => (
+                      // React.cloneElement(renderJobRoleCard(role, category), { key: `${role}-${category}` })
+                      renderJobRoleCard(role, category)
+                    ))
                   )}
                 </ScrollView>
               </View>
@@ -389,18 +389,10 @@ const styles = StyleSheet.create({
     alignSelf: 'flex-start',
     width: '100%',
   },
-  backButton: {
-    paddingVertical: 8,
-    paddingHorizontal: 12,
-  },
-  backButtonText: {
-    color: '#00ff00',
-    fontSize: 16,
-    fontWeight: '600',
-  },
+
   progressContainer: {
     alignItems: 'center',
-    marginTop: 10,
+    marginTop: 0,
     marginBottom: 10,
     width: '100%',
   },

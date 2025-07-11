@@ -18,11 +18,15 @@ import { useNavigation } from '@react-navigation/native';
 import { useOnboarding } from '../../context/OnboardingContext';
 import { useAuthStore } from '../../services/Zuststand';
 import AnimatedBackground from '../../components/AnimatedBackground';
+import PageLayout from '../../components/layouts/PageLayout';
+import ProgressBar from '../../components/atoms/ProgressBar';
+import { useProgress } from '../../hooks/useProgress';
 
 export default function Step1Name() {
   const navigation = useNavigation();
   const { user } = useAuthStore();
   const { saveStep1Data, onboardingData, isLoading, error } = useOnboarding();
+  const { getOnboardingProgress } = useProgress();
   const [name, setName] = useState('');
   const [nameError, setNameError] = useState('');
   const inputRef = useRef(null);
@@ -109,109 +113,91 @@ export default function Step1Name() {
   return (
     <SafeAreaView style={styles.safeArea}>
       <AnimatedBackground intensity="medium">
-        <KeyboardAvoidingView
-          style={styles.flex}
-          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-          keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 20}
-        >
-          <TouchableWithoutFeedback onPress={handleKeyboardDismiss} accessible={false}>
-            <View style={styles.flex}>
-              <View style={styles.innerSafeContainer}>
-                {/* Back Button */}
-                <TouchableOpacity
-                  style={styles.backButton}
-                  onPress={() => navigation.navigate('Intro')}
-                >
-                  <Text style={styles.backButtonText}>← Back to Intro</Text>
-                </TouchableOpacity>
-                
-                {/* Progress Indicator */}
-                <View style={styles.progressContainer}>
-                  <View style={styles.progressBar}>
-                    <View style={[styles.progressFill, { width: '25%' }]} />
+        <PageLayout message={"What's your name?\nLet's get to know you!"}>
+          <KeyboardAvoidingView
+            style={styles.flex}
+            behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+            keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 20}
+          >
+            <TouchableWithoutFeedback onPress={handleKeyboardDismiss} accessible={false}>
+              <View style={styles.flex}>
+                <View style={styles.innerSafeContainer}>
+
+                  {/* Progress Indicator */}
+                  <View style={styles.progressContainer}>
+                    <ProgressBar percent={getOnboardingProgress(1)} />
                   </View>
-                  <Text style={styles.progressText}>Step 1 of 4</Text>
-                </View>
 
-                {/* Header */}
-                <View style={styles.headerContainer}>
-                  <Text style={styles.title}>What's your name?</Text>
-                  <Text style={styles.subtitle}>
-                    Let's personalize your experience
-                  </Text>
-                </View>
-
-                {/* Center Section with Input */}
-                <View style={styles.centerSection}>
-                  <TextInput
-                    ref={inputRef}
-                    style={[
-                      styles.input,
-                      nameError ? styles.inputError : null
-                    ]}
-                    value={name}
-                    onChangeText={handleChangeText}
-                    placeholder="Enter your full name"
-                    placeholderTextColor="#666"
-                    autoCapitalize="words"
-                    autoCorrect={false}
-                    maxLength={50}
-                    returnKeyType="done"
-                    onSubmitEditing={handleNext}
-                    editable={!isLoading}
-                    accessible={true}
-                    accessibilityLabel="Enter your name"
-                    accessibilityRole="text"
-                  />
-                  {nameError ? (
-                    <Text style={styles.errorText}>{nameError}</Text>
-                  ) : null}
-                </View>
-
-
-
-                {/* Error Message */}
-                {error && (
-                  <View style={styles.errorContainer}>
-                    <Text style={styles.errorMessage}>{error}</Text>
+                  {/* Center Section with Input */}
+                  <View style={styles.centerSection}>
+                    <TextInput
+                      ref={inputRef}
+                      style={[
+                        styles.input,
+                        nameError ? styles.inputError : null
+                      ]}
+                      value={name}
+                      onChangeText={handleChangeText}
+                      placeholder="Enter your full name"
+                      placeholderTextColor="#666"
+                      autoCapitalize="words"
+                      autoCorrect={false}
+                      maxLength={50}
+                      returnKeyType="done"
+                      onSubmitEditing={handleNext}
+                      editable={!isLoading}
+                      accessible={true}
+                      accessibilityLabel="Enter your name"
+                      accessibilityRole="text"
+                    />
+                    {nameError ? (
+                      <Text style={styles.errorText}>{nameError}</Text>
+                    ) : null}
                   </View>
-                )}
-              </View>
 
-              {/* Absolute Button Container */}
-              <View style={styles.absoluteButtonContainer}>
-                <TouchableOpacity
-                  style={[
-                    styles.nextButton,
-                    !isButtonEnabled && styles.nextButtonDisabled
-                  ]}
-                  onPress={handleNext}
-                  disabled={!isButtonEnabled}
-                  accessible={true}
-                  accessibilityLabel="Proceed to next step"
-                  accessibilityRole="button"
-                >
-                  {isLoading ? (
-                    <View style={styles.loadingContainer}>
-                      <ActivityIndicator size="small" color="#000" />
-                      <Text style={styles.nextButtonText}>Saving...</Text>
+                  {/* Error Message */}
+                  {error && (
+                    <View style={styles.errorContainer}>
+                      <Text style={styles.errorMessage}>{error}</Text>
                     </View>
-                  ) : (
-                    <Text style={styles.nextButtonText}>Next</Text>
                   )}
-                </TouchableOpacity>
+                </View>
 
-                <TouchableOpacity
-                  style={styles.skipButton}
-                  onPress={handleSkip}
-                  disabled={isLoading}
-                >
-                  <Text style={styles.skipButtonText}>Skip for now</Text>
-                </TouchableOpacity>
+                {/* Absolute Button Container */}
+                <View style={styles.absoluteButtonContainer}>
+                  <TouchableOpacity
+                    style={[
+                      styles.nextButton,
+                      !isButtonEnabled && styles.nextButtonDisabled
+                    ]}
+                    onPress={handleNext}
+                    disabled={!isButtonEnabled}
+                    accessible={true}
+                    accessibilityLabel="Proceed to next step"
+                    accessibilityRole="button"
+                  >
+                    {isLoading ? (
+                      <View style={styles.loadingContainer}>
+                        <ActivityIndicator size="small" color="#000" />
+                        <Text style={styles.nextButtonText}>Saving...</Text>
+                      </View>
+                    ) : (
+                      <Text style={styles.nextButtonText}>Next</Text>
+                    )}
+                  </TouchableOpacity>
+
+                  <TouchableOpacity
+                    style={styles.skipButton}
+                    onPress={handleSkip}
+                    disabled={isLoading}
+                  >
+                    <Text style={styles.skipButtonText}>Skip for now</Text>
+                  </TouchableOpacity>
+                </View>
               </View>
-            </View>
-          </TouchableWithoutFeedback>
-        </KeyboardAvoidingView>
+            </TouchableWithoutFeedback>
+          </KeyboardAvoidingView>
+        </PageLayout>
       </AnimatedBackground>
     </SafeAreaView>
   );
@@ -231,38 +217,11 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingTop: 30,
   },
-  backButton: {
-    paddingVertical: 8,
-    paddingHorizontal: 12,
-    marginBottom: 10,
-  },
-  backButtonText: {
-    color: '#00ff00',
-    fontSize: 16,
-    fontWeight: '600',
-  },
+
   progressContainer: {
     alignItems: 'center',
-    marginTop: 10,
+    marginTop: 0,
     marginBottom: 40,
-  },
-  progressBar: {
-    height: 4,
-    backgroundColor: '#333',
-    borderRadius: 2,
-    overflow: 'hidden',
-    width: '100%',
-  },
-  progressFill: {
-    height: '100%',
-    backgroundColor: '#00ff00',
-    borderRadius: 2,
-  },
-  progressText: {
-    color: '#999',
-    fontSize: 12,
-    textAlign: 'center',
-    marginTop: 8,
   },
   headerContainer: {
     alignItems: 'center',

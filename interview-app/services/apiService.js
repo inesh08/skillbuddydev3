@@ -70,7 +70,7 @@ class ApiService {
       console.log('API response received:', data);
       return data;
     } catch (error) {
-      console.error('API Request failed:', error);
+      // console.error('API Request failed:', error);
       
       // Provide more specific error messages
       if (error.message === 'Network request failed') {
@@ -107,7 +107,7 @@ class ApiService {
       console.log('API Service: Register successful:', result);
       return result;
     } catch (error) {
-      console.error('API Service: Register failed:', error);
+      // console.error('API Service: Register failed:', error);
       throw error;
     }
   }
@@ -165,6 +165,12 @@ class ApiService {
     });
   }
 
+  async getXP() {
+    return this.request('/user/xp', {
+      method: 'GET',
+    });
+  }
+
   // Resume methods (requires X-User-ID header)
   async uploadResume(formData) {
     const url = `${this.baseURL}/resume/upload`;
@@ -215,6 +221,24 @@ class ApiService {
 
   async getResumeAnalysis(resumeId) {
     return this.request(`/resume/analysis/${resumeId}`, {
+      method: 'GET',
+    });
+  }
+
+  async getResumeSummary(resumeId) {
+    return this.request(`/resume/summary/${resumeId}`, {
+      method: 'GET',
+    });
+  }
+
+  async getResumeQuality(resumeId) {
+    return this.request(`/resume/quality/${resumeId}`, {
+      method: 'GET',
+    });
+  }
+
+  async getResumeImprovements(resumeId) {
+    return this.request(`/resume/suggestions/${resumeId}`, {
       method: 'GET',
     });
   }

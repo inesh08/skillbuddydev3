@@ -6,7 +6,7 @@ const AVATAR_SIZE = 69;
 const peppyImageStyles = StyleSheet.create({
   container: {
     position: 'absolute',
-    top: 125,       // Adjust as needed for consistent placement
+    top: 70,        // Moved up by 30% more (from 100 to 70)
     left: 20,
     zIndex: 100,   // Ensure it's above other elements
   },
@@ -18,9 +18,9 @@ const peppyImageStyles = StyleSheet.create({
   },
 });
 
-export default function PeppyImage() {
+export default function PeppyImage({ higher = false }) {
   return (
-    <View style={peppyImageStyles.container}>
+    <View style={[peppyImageStyles.container, higher && { top: 40 }] }>
       <Image
         source={require('../../assets/peppy.jpeg')}
         style={peppyImageStyles.image}

@@ -15,6 +15,7 @@ import AnimatedBackground from '../../components/AnimatedBackground';
 import PageLayout from '../../components/layouts/PageLayout';
 import GreenButton from '../../components/atoms/GreenButton';
 import { useOnboardingStore } from '../../services/onboardingStore';
+import { useProgress } from '../../hooks/useProgress';
 
 export default function Step2Profession({ navigation }) {
   const [selectedProfession, setSelectedProfession] = useState(null);
@@ -28,6 +29,8 @@ export default function Step2Profession({ navigation }) {
     loadOnboardingData,
     clearError 
   } = useOnboardingStore();
+  
+  const { getOnboardingProgress } = useProgress();
 
   useEffect(() => {
     // Load saved onboarding data
@@ -80,25 +83,19 @@ export default function Step2Profession({ navigation }) {
       <AnimatedBackground intensity="medium">
         <PageLayout message={"Where are you in your\nCareer Journey"}>
           <View style={styles.innerContainer}>
-            {/* Back Button */}
-            <TouchableOpacity
-              style={styles.backButton}
-              onPress={() => navigation.goBack()}
-            >
-              <Text style={styles.backButtonText}>← Back</Text>
-            </TouchableOpacity>
+            
             
             <View style={styles.progressContainer}>
-              <ProgressBar percent={50} />
+              <ProgressBar percent={getOnboardingProgress(2)} />
             </View>
 
             <ScrollView contentContainerStyle={styles.scrollContainer}>
               <View style={styles.centerContainer}>
                 <View style={styles.allOptionsContainerCentered}>
                   <View style={styles.rowWrapCentered}>
-                    {professions.map((item, index) => (
+                    {professions.map((item) => (
                       <TouchableOpacity
-                        key={index}
+                        key={item.label}
                         style={styles.professionItem}
                         accessible={true}
                         accessibilityLabel={`Select ${item.label}`}
@@ -160,19 +157,10 @@ const styles = StyleSheet.create({
     paddingTop: 30,
     paddingBottom: 20,
   },
-  backButton: {
-    paddingVertical: 8,
-    paddingHorizontal: 12,
-    marginBottom: 10,
-  },
-  backButtonText: {
-    color: '#00ff00',
-    fontSize: 16,
-    fontWeight: '600',
-  },
+
   progressContainer: {
     alignItems: 'center',
-    marginTop: 10,
+    marginTop: 0,
     marginBottom: 10,
   },
   scrollContainer: {

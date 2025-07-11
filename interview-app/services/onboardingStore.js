@@ -44,15 +44,19 @@ export const useOnboardingStore = create((set, get) => ({
     }
   },
 
-  updateProfileInBackend: async (profileData) => {
+  // New function to send all onboarding data to backend
+  sendOnboardingDataToBackend: async () => {
     set({ isLoading: true, error: null });
 
     try {
-      const response = await apiService.updateProfile(profileData);
-      console.log('Profile updated successfully:', response);
+      const { onboardingData } = get();
+      console.log('Sending onboarding data to backend:', onboardingData);
+      
+      const response = await apiService.updateProfile(onboardingData);
+      console.log('Onboarding data sent successfully:', response);
       return response;
     } catch (error) {
-      console.error('Error updating profile:', error);
+      console.error('Error sending onboarding data:', error);
       set({ error: error.message });
       throw error;
     } finally {
@@ -63,7 +67,6 @@ export const useOnboardingStore = create((set, get) => ({
   saveStep1Data: async (name) => {
     try {
       await get().saveOnboardingData({ name });
-      await get().updateProfileInBackend({ name });
       set({ currentStep: 2 });
     } catch (error) {
       console.error('Error saving step 1 data:', error);
@@ -74,7 +77,6 @@ export const useOnboardingStore = create((set, get) => ({
   saveStep2Data: async (profession) => {
     try {
       await get().saveOnboardingData({ profession });
-      await get().updateProfileInBackend({ profession });
       set({ currentStep: 3 });
     } catch (error) {
       console.error('Error saving step 2 data:', error);
@@ -85,7 +87,6 @@ export const useOnboardingStore = create((set, get) => ({
   saveStep3Data: async (career_choices) => {
     try {
       await get().saveOnboardingData({ career_choices });
-      await get().updateProfileInBackend({ career_choices });
       set({ currentStep: 4 });
     } catch (error) {
       console.error('Error saving step 3 data:', error);
@@ -96,7 +97,6 @@ export const useOnboardingStore = create((set, get) => ({
   saveStep4Data: async (college_name, college_email) => {
     try {
       await get().saveOnboardingData({ college_name, college_email });
-      await get().updateProfileInBackend({ college_name, college_email });
       set({ currentStep: 5 });
     } catch (error) {
       console.error('Error saving step 4 data:', error);
@@ -106,6 +106,10 @@ export const useOnboardingStore = create((set, get) => ({
 
   completeOnboarding: async () => {
     try {
+      // Send all onboarding data to backend
+      await get().sendOnboardingDataToBackend();
+      
+      // Mark onboarding as complete
       await SecureStore.setItemAsync('onboardingComplete', 'true');
       await SecureStore.deleteItemAsync('onboardingData');
       set({ 

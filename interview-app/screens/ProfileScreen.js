@@ -17,10 +17,12 @@ import { useNavigation } from '@react-navigation/native';
 import { useAuthStore } from '../services/Zuststand';
 import apiService from '../services/apiService';
 import AnimatedBackground from '../components/AnimatedBackground';
+import { useProgress } from '../hooks/useProgress';
 
 export default function ProfileScreen() {
   const navigation = useNavigation();
   const { user, updateUserProfile, logout, isAuthenticated } = useAuthStore();
+  const { profileCompletionPercentage, xpProgressPercentage, currentLevel, totalXP, loadProgressData } = useProgress();
   const [isLoading, setIsLoading] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [showLogoutModal, setShowLogoutModal] = useState(false);
@@ -32,15 +34,6 @@ export default function ProfileScreen() {
     college_name: '',
     college_email: '',
   });
-
-  const [xpData, setXpData] = useState({
-    current_xp: 0,
-    total_xp: 0,
-    level: 1,
-    badges: [],
-  });
-
-  const [completionStatus, setCompletionStatus] = useState(0);
 
   const professionOptions = ['Student', 'Graduate', 'Post Graduate', 'Professional', 'Switch Career'];
   const careerOptions = ['Software Developer', 'Data Analyst', 'Digital Marketer', 'UI/UX Designer', 'Product Manager'];
@@ -67,28 +60,8 @@ export default function ProfileScreen() {
         college_email: profile.college_email || '',
       });
 
-      // Load XP data
-      try {
-        const xpResponse = await apiService.getXP();
-        setXpData(xpResponse.xp || {
-          current_xp: 0,
-          total_xp: 0,
-          level: 1,
-          badges: [],
-        });
-      } catch (xpError) {
-        console.error('Error loading XP data:', xpError);
-        // Use default values if XP data fails to load
-      }
-
-      // Load completion status
-      try {
-        const completionResponse = await apiService.getProfileCompletion();
-        setCompletionStatus(completionResponse.completion_status || 0);
-      } catch (completionError) {
-        console.error('Error loading completion status:', completionError);
-        // Use default value if completion status fails to load
-      }
+      // Load progress data using the hook
+      await loadProgressData();
 
     } catch (error) {
       console.error('Error loading profile data:', error);
@@ -227,16 +200,16 @@ export default function ProfileScreen() {
 
         {/* Profile Stats */}
         <View style={styles.statsContainer}>
+                      <View style={styles.statItem}>
+              <Text style={styles.statValue}>{totalXP}</Text>
+              <Text style={styles.statLabel}>XP</Text>
+            </View>
+            <View style={styles.statItem}>
+              <Text style={styles.statValue}>{currentLevel}</Text>
+              <Text style={styles.statLabel}>Level</Text>
+            </View>
           <View style={styles.statItem}>
-            <Text style={styles.statValue}>{xpData.current_xp}</Text>
-            <Text style={styles.statLabel}>XP</Text>
-          </View>
-          <View style={styles.statItem}>
-            <Text style={styles.statValue}>{xpData.level}</Text>
-            <Text style={styles.statLabel}>Level</Text>
-          </View>
-          <View style={styles.statItem}>
-            <Text style={styles.statValue}>{completionStatus}%</Text>
+                            <Text style={styles.statValue}>{profileCompletionPercentage}%</Text>
             <Text style={styles.statLabel}>Complete</Text>
           </View>
         </View>

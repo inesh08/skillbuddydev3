@@ -13,6 +13,7 @@ import {
   Keyboard,
   Alert,
   ActivityIndicator,
+  Image,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
@@ -24,13 +25,9 @@ export default function SignupScreen() {
   
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [confirmPassword, setConfirmPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
-  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [emailError, setEmailError] = useState('');
   const [passwordError, setPasswordError] = useState('');
-  const [confirmPasswordError, setConfirmPasswordError] = useState('');
-  const [agreedToTerms, setAgreedToTerms] = useState(false);
 
   const validateEmail = (email) => {
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -43,7 +40,6 @@ export default function SignupScreen() {
     // Reset errors
     setEmailError('');
     setPasswordError('');
-    setConfirmPasswordError('');
 
     // Validate email
     if (!email.trim()) {
@@ -60,21 +56,6 @@ export default function SignupScreen() {
       isValid = false;
     } else if (password.length < 6) {
       setPasswordError('Password must be at least 6 characters');
-      isValid = false;
-    }
-
-    // Validate confirm password
-    if (!confirmPassword.trim()) {
-      setConfirmPasswordError('Please confirm your password');
-      isValid = false;
-    } else if (password !== confirmPassword) {
-      setConfirmPasswordError('Passwords do not match');
-      isValid = false;
-    }
-
-    // Validate terms agreement
-    if (!agreedToTerms) {
-      Alert.alert('Terms Required', 'Please agree to the terms and conditions to continue.');
       isValid = false;
     }
 
@@ -100,7 +81,18 @@ export default function SignupScreen() {
         navigation.navigate('Step1');
       } else {
         console.log('Signup failed:', result.error);
-        Alert.alert('Sign Up Failed', result.error || 'Please try again.');
+        if (result.error && result.error.toLowerCase().includes('user already exists')) {
+          Alert.alert(
+            'User Already Exists',
+            'An account with this email already exists. Would you like to login instead?',
+            [
+              { text: 'Cancel', style: 'cancel' },
+              { text: 'Go to Login', onPress: handleLogin }
+            ]
+          );
+        } else {
+          Alert.alert('Sign Up Failed', result.error || 'Please try again.');
+        }
       }
     } catch (error) {
       console.error('Signup error:', error);
@@ -112,7 +104,7 @@ export default function SignupScreen() {
     navigation.navigate('Login');
   };
 
-  const isButtonEnabled = email.trim() && password.trim() && confirmPassword.trim() && agreedToTerms && !isLoading;
+  const isButtonEnabled = email.trim() && password.trim() && !isLoading;
 
   return (
     <SafeAreaView style={styles.safeArea}>
@@ -192,69 +184,6 @@ export default function SignupScreen() {
                   <Text style={styles.errorText}>{passwordError}</Text>
                 ) : null}
               </View>
-
-              {/* Confirm Password Input */}
-              <View style={styles.inputContainer}>
-                <View style={styles.passwordContainer}>
-                  <TextInput
-                    style={[
-                      styles.passwordInput,
-                      confirmPasswordError ? styles.inputError : null
-                    ]}
-                    placeholder="Confirm Password"
-                    placeholderTextColor="#666"
-                    value={confirmPassword}
-                    onChangeText={(text) => {
-                      setConfirmPassword(text);
-                      if (confirmPasswordError) setConfirmPasswordError('');
-                    }}
-                    secureTextEntry={!showConfirmPassword}
-                    autoCapitalize="none"
-                    autoCorrect={false}
-                    accessible={true}
-                    accessibilityLabel="Confirm password input"
-                  />
-                  <TouchableOpacity
-                    style={styles.eyeButton}
-                    onPress={() => setShowConfirmPassword(!showConfirmPassword)}
-                    accessible={true}
-                    accessibilityLabel={showConfirmPassword ? "Hide confirm password" : "Show confirm password"}
-                  >
-                    <Ionicons
-                      name={showConfirmPassword ? 'eye-off' : 'eye'}
-                      size={20}
-                      color="#666"
-                    />
-                  </TouchableOpacity>
-                </View>
-                {confirmPasswordError ? (
-                  <Text style={styles.errorText}>{confirmPasswordError}</Text>
-                ) : null}
-              </View>
-
-              {/* Terms and Conditions */}
-              <View style={styles.termsContainer}>
-                <TouchableOpacity
-                  style={styles.checkboxContainer}
-                  onPress={() => setAgreedToTerms(!agreedToTerms)}
-                  accessible={true}
-                  accessibilityLabel="Agree to terms and conditions"
-                  accessibilityRole="checkbox"
-                  accessibilityState={{ checked: agreedToTerms }}
-                >
-                  <View style={[styles.checkbox, agreedToTerms && styles.checkboxChecked]}>
-                    {agreedToTerms && (
-                      <Ionicons name="checkmark" size={16} color="#000" />
-                    )}
-                  </View>
-                  <Text style={styles.termsText}>
-                    I agree to the{' '}
-                    <Text style={styles.termsLink}>Terms & Conditions</Text>
-                    {' '}and{' '}
-                    <Text style={styles.termsLink}>Privacy Policy</Text>
-                  </Text>
-                </TouchableOpacity>
-              </View>
             </View>
 
             {/* Sign Up Button */}
@@ -286,6 +215,22 @@ export default function SignupScreen() {
                   </Text>
                 )}
               </TouchableOpacity>
+
+              {/* Divider */}
+              <View style={styles.dividerContainer}>
+                <View style={styles.dividerLine} />
+                <Text style={styles.dividerText}>OR</Text>
+                <View style={styles.dividerLine} />
+              </View>
+
+              {/* Google Logo */}
+              <View style={styles.googleLogoContainer}>
+                <Image
+                  source={require('../assets/google.png')}
+                  style={styles.googleLogo}
+                  resizeMode="contain"
+                />
+              </View>
 
               {/* Login Link */}
               <View style={styles.loginContainer}>
@@ -377,38 +322,6 @@ const styles = StyleSheet.create({
     marginTop: 5,
     marginLeft: 5,
   },
-  termsContainer: {
-    marginTop: 10,
-    marginBottom: 20,
-  },
-  checkboxContainer: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-  },
-  checkbox: {
-    width: 20,
-    height: 20,
-    borderWidth: 2,
-    borderColor: '#00ff00',
-    borderRadius: 4,
-    marginRight: 12,
-    marginTop: 2,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  checkboxChecked: {
-    backgroundColor: '#00ff00',
-  },
-  termsText: {
-    color: '#fff',
-    fontSize: 14,
-    flex: 1,
-    lineHeight: 20,
-  },
-  termsLink: {
-    color: '#00ff00',
-    textDecorationLine: 'underline',
-  },
   buttonContainer: {
     paddingBottom: 30,
     alignItems: 'center',
@@ -439,6 +352,30 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 10,
+  },
+  dividerContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginVertical: 20,
+    width: '100%',
+  },
+  dividerLine: {
+    flex: 1,
+    height: 1,
+    backgroundColor: '#333',
+  },
+  dividerText: {
+    color: '#666',
+    fontSize: 14,
+    marginHorizontal: 15,
+  },
+  googleLogoContainer: {
+    alignItems: 'center',
+    marginVertical: 10,
+  },
+  googleLogo: {
+    width: 40,
+    height: 40,
   },
   loginContainer: {
     flexDirection: 'row',

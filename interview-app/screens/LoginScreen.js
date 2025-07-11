@@ -13,6 +13,7 @@ import {
   Keyboard,
   Alert,
   ActivityIndicator,
+  Image,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
@@ -82,14 +83,6 @@ export default function LoginScreen() {
 
   const handleSignUp = () => {
     navigation.navigate('Signup');
-  };
-
-  const handleForgotPassword = () => {
-    Alert.alert(
-      'Forgot Password',
-      'Please contact support to reset your password.',
-      [{ text: 'OK', style: 'default' }]
-    );
   };
 
   const isButtonEnabled = email.trim() && password.trim() && !isLoading;
@@ -172,17 +165,6 @@ export default function LoginScreen() {
                   <Text style={styles.errorText}>{passwordError}</Text>
                 ) : null}
               </View>
-
-              {/* Forgot Password */}
-              <View style={styles.forgotPasswordContainer}>
-                <TouchableOpacity
-                  onPress={handleForgotPassword}
-                  accessible={true}
-                  accessibilityLabel="Forgot password"
-                >
-                  <Text style={styles.forgotPasswordText}>Forgot Password?</Text>
-                </TouchableOpacity>
-              </View>
             </View>
 
             {/* Login Button */}
@@ -214,6 +196,22 @@ export default function LoginScreen() {
                   </Text>
                 )}
               </TouchableOpacity>
+
+              {/* Divider */}
+              <View style={styles.dividerContainer}>
+                <View style={styles.dividerLine} />
+                <Text style={styles.dividerText}>OR</Text>
+                <View style={styles.dividerLine} />
+              </View>
+
+              {/* Google Logo */}
+              <View style={styles.googleLogoContainer}>
+                <Image
+                  source={require('../assets/google.png')}
+                  style={styles.googleLogo}
+                  resizeMode="contain"
+                />
+              </View>
 
               {/* Sign Up Link */}
               <View style={styles.signUpContainer}>
@@ -305,16 +303,6 @@ const styles = StyleSheet.create({
     marginTop: 5,
     marginLeft: 5,
   },
-  forgotPasswordContainer: {
-    alignItems: 'flex-end',
-    marginTop: 10,
-    marginBottom: 20,
-  },
-  forgotPasswordText: {
-    color: '#00ff00',
-    fontSize: 14,
-    fontWeight: '500',
-  },
   buttonContainer: {
     paddingBottom: 30,
     alignItems: 'center',
@@ -345,6 +333,30 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 10,
+  },
+  dividerContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginVertical: 20,
+    width: '100%',
+  },
+  dividerLine: {
+    flex: 1,
+    height: 1,
+    backgroundColor: '#333',
+  },
+  dividerText: {
+    color: '#666',
+    fontSize: 14,
+    marginHorizontal: 15,
+  },
+  googleLogoContainer: {
+    alignItems: 'center',
+    marginVertical: 10,
+  },
+  googleLogo: {
+    width: 40,
+    height: 40,
   },
   signUpContainer: {
     flexDirection: 'row',

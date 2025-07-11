@@ -19,6 +19,7 @@ import AnimatedBackground from '../../components/AnimatedBackground';
 import RocketAnimation from '../../components/RocketAnimation';
 import PageLayout from '../../components/layouts/PageLayout';
 import { useOnboardingStore } from '../../services/onboardingStore';
+import { useProgress } from '../../hooks/useProgress';
 
 export default function CollegeInfoScreen({ navigation }) {
   const [collegeName, setCollegeName] = useState('');
@@ -35,6 +36,8 @@ export default function CollegeInfoScreen({ navigation }) {
     loadOnboardingData,
     clearError 
   } = useOnboardingStore();
+  
+  const { getOnboardingProgress } = useProgress();
 
   useEffect(() => {
     // Load saved onboarding data
@@ -73,7 +76,10 @@ export default function CollegeInfoScreen({ navigation }) {
     }
 
     try {
+      // Save step 4 data locally
       await saveStep4Data(collegeName.trim(), collegeEmail.trim());
+      
+      // Complete onboarding and send all data to backend
       await completeOnboarding();
       setShowConfetti(true);
 
@@ -83,7 +89,7 @@ export default function CollegeInfoScreen({ navigation }) {
     } catch (error) {
       Alert.alert(
         'Error', 
-        'Failed to save your college information. Please check your connection and try again.',
+        'Failed to complete onboarding. Please check your connection and try again.',
         [{ text: 'OK' }]
       );
     }
@@ -109,16 +115,10 @@ export default function CollegeInfoScreen({ navigation }) {
           <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
             <PageLayout message={"Please tell me your\neducation details."}>
               <View style={styles.innerContainer}>
-                {/* Back Button */}
-                <TouchableOpacity
-                  style={styles.backButton}
-                  onPress={() => navigation.goBack()}
-                >
-                  <Text style={styles.backButtonText}>← Back</Text>
-                </TouchableOpacity>
+                
                 
                 <View style={styles.progressContainer}>
-                  <ProgressBar percent={100} />
+                  <ProgressBar percent={getOnboardingProgress(4)} />
                 </View>
 
                 <View style={styles.centerSection}>
@@ -152,7 +152,7 @@ export default function CollegeInfoScreen({ navigation }) {
 
               <View style={styles.absoluteButtonContainer}>
                 <GreenButton
-                  title={isLoading ? "Saving..." : "Complete"}
+                  title={isLoading ? "Completing..." : "Complete"}
                   onPress={handleNext}
                   disabled={collegeName.trim() === '' || isLoading}
                 />
@@ -191,18 +191,10 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: 10,
   },
-  backButton: {
-    paddingVertical: 8,
-    paddingHorizontal: 12,
-  },
-  backButtonText: {
-    color: '#00ff00',
-    fontSize: 16,
-    fontWeight: '600',
-  },
+
   progressContainer: {
     alignItems: 'center',
-    marginTop: 10,
+    marginTop: 0,
     marginBottom: 10,
   },
   centerSection: {
