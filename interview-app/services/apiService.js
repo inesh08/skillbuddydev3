@@ -2,11 +2,9 @@
 
 // Get the correct base URL based on environment
 const getApiBaseUrl = () => {
-  // Replace with your actual computer IP address
-  const COMPUTER_IP = '192.168.1.4'; // Updated IP address
-  
-  // Development URLs
-  const LOCAL_URL = `http://${COMPUTER_IP}:5000/api`;
+  // Development URLs - use your computer's IP address
+  const COMPUTER_IP = '172.20.10.2';
+  const LOCAL_URL = `http://${COMPUTER_IP}:5001/api`;
   
   // Production URL (when you deploy)
   const PRODUCTION_URL = 'https://your-backend-domain.com/api';
@@ -94,6 +92,35 @@ class ApiService {
     }
   }
 
+  // Ensure user data is loaded after login
+  async ensureUserDataLoaded() {
+    if (!this.userId) {
+      console.warn('No user ID set, cannot load user data');
+      return false;
+    }
+
+    try {
+      console.log('Ensuring user data is loaded for user:', this.userId);
+      
+      // Load profile data
+      const profileResponse = await this.getProfile();
+      console.log('Profile loaded:', profileResponse);
+      
+      // Load social links
+      const socialLinksResponse = await this.getSocialLinks();
+      console.log('Social links loaded:', socialLinksResponse);
+      
+      // Load XP data
+      const xpResponse = await this.getXP();
+      console.log('XP data loaded:', xpResponse);
+      
+      return true;
+    } catch (error) {
+      console.error('Error ensuring user data is loaded:', error);
+      return false;
+    }
+  }
+
   // Auth methods (no X-User-ID needed for these)
   async register(email, password) {
     console.log('API Service: Registering user with email:', email);
@@ -108,6 +135,23 @@ class ApiService {
       return result;
     } catch (error) {
       // console.error('API Service: Register failed:', error);
+      throw error;
+    }
+  }
+
+  async registerWithOnboarding(registrationData) {
+    console.log('API Service: Registering user with onboarding data:', registrationData);
+    console.log('API Service: Making request to:', `${this.baseURL}/auth/register`);
+    
+    try {
+      const result = await this.request('/auth/register', {
+        method: 'POST',
+        body: JSON.stringify(registrationData),
+      });
+      console.log('API Service: Register with onboarding successful:', result);
+      return result;
+    } catch (error) {
+      console.error('API Service: Register with onboarding failed:', error);
       throw error;
     }
   }
@@ -159,14 +203,21 @@ class ApiService {
     });
   }
 
-  async getProfileCompletion() {
-    return this.request('/user/profile/completion', {
-      method: 'GET',
+  async updateXP(amount, source = 'Unknown') {
+    return this.request('/user/xp', {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        amount: amount,
+        source: source
+      }),
     });
   }
 
-  async getXP() {
-    return this.request('/user/xp', {
+  async getProfileCompletion() {
+    return this.request('/user/profile/completion', {
       method: 'GET',
     });
   }
@@ -399,6 +450,73 @@ class ApiService {
       console.error('Failed to check community health:', error);
       throw error;
     }
+  }
+
+  // Profile Analysis methods (requires X-User-ID header)
+  async analyzeGitHub(githubUsername) {
+    return this.request('/profile-analysis/analyze/github', {
+      method: 'POST',
+      body: JSON.stringify({ github_username: githubUsername }),
+    });
+  }
+
+  async analyzeLinkedIn(linkedinUrl) {
+    return this.request('/profile-analysis/analyze/linkedin', {
+      method: 'POST',
+      body: JSON.stringify({ linkedin_url: linkedinUrl }),
+    });
+  }
+
+  async getProfileAnalysisStatus(analysisId) {
+    return this.request(`/profile-analysis/status/${analysisId}`, {
+      method: 'GET',
+    });
+  }
+
+  async getProfileAnalysisResults(analysisId) {
+    return this.request(`/profile-analysis/results/${analysisId}`, {
+      method: 'GET',
+    });
+  }
+
+  async getUserProfileAnalyses(type = null) {
+    const params = type ? `?type=${type}` : '';
+    return this.request(`/profile-analysis/user/analyses${params}`, {
+      method: 'GET',
+    });
+  }
+
+  async getUserAnalyses() {
+    return this.request('/profile-analysis/user', {
+      method: 'GET',
+    });
+  }
+
+  // Convenience methods for backward compatibility
+  async post(endpoint, data) {
+    return this.request(endpoint, {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  }
+
+  async get(endpoint) {
+    return this.request(endpoint, {
+      method: 'GET',
+    });
+  }
+
+  async put(endpoint, data) {
+    return this.request(endpoint, {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    });
+  }
+
+  async delete(endpoint) {
+    return this.request(endpoint, {
+      method: 'DELETE',
+    });
   }
 }
 

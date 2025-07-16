@@ -3,20 +3,51 @@ import { View, Text, StyleSheet, SafeAreaView } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import ConfettiAnimation from '../../components/ConfettiAnimation';
 import AnimatedBackground from '../../components/AnimatedBackground';
+import { useAuthStore } from '../../services/Zuststand';
+import { useOnboardingStore } from '../../services/onboardingStore';
 
 export default function OnboardingComplete() {
   const navigation = useNavigation();
+  const { user } = useAuthStore();
+  const { initializeOnboardingStore, completeOnboarding } = useOnboardingStore();
   const [showConfetti, setShowConfetti] = useState(true);
 
   useEffect(() => {
-    // Show confetti for 3 seconds, then navigate to home
-    const timer = setTimeout(() => {
-      setShowConfetti(false);
-      navigation.replace('Home'); // Use replace to prevent going back to onboarding
-    }, 3000);
+    const handleOnboardingComplete = async () => {
+      try {
+        // Initialize onboarding store with user ID
+        await initializeOnboardingStore();
+        
+        // Complete onboarding
+        await completeOnboarding();
+        
+        // Show confetti for 3 seconds, then navigate to home
+        const timer = setTimeout(() => {
+          setShowConfetti(false);
+          // Navigate to Home screen and replace the entire stack
+          // This prevents users from going back to onboarding
+          navigation.reset({
+            index: 0,
+            routes: [{ name: 'Home' }],
+          });
+        }, 3000);
 
-    return () => clearTimeout(timer);
-  }, [navigation]);
+        return () => clearTimeout(timer);
+      } catch (error) {
+        console.error('Error completing onboarding:', error);
+        // Still navigate to home even if there's an error
+        setTimeout(() => {
+          setShowConfetti(false);
+          navigation.reset({
+            index: 0,
+            routes: [{ name: 'Home' }],
+          });
+        }, 3000);
+      }
+    };
+
+    handleOnboardingComplete();
+  }, [navigation, initializeOnboardingStore, completeOnboarding]);
 
   return (
     <SafeAreaView style={styles.container}>
@@ -24,7 +55,7 @@ export default function OnboardingComplete() {
         {showConfetti ? (
           <ConfettiAnimation 
             successText="Setup Complete!"
-            subText="You're all set to start your journey"
+            subText={`Welcome to Skill Buddy, ${user?.name || 'User'}!`}
           />
         ) : (
           <View style={styles.content}>

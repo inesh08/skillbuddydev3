@@ -1,9 +1,9 @@
-import React from 'react';
+import React, { memo } from 'react';
 import { View, StyleSheet, SafeAreaView } from 'react-native';
 import PeppyImage from '../atoms/PeppyImage';
 import ChatBubble from '../molecules/ChatBubble';
 
-export default function PageLayout({ children, message = "Hey there!", higher = false }) {
+const PageLayout = memo(({ children, message = "Hey there!", higher = false }) => {
   return (
     <SafeAreaView style={styles.safeArea}>
       <View style={styles.container}>
@@ -15,7 +15,7 @@ export default function PageLayout({ children, message = "Hey there!", higher = 
       </View>
     </SafeAreaView>
   );
-}
+});
 
 const styles = StyleSheet.create({
   safeArea: {
@@ -32,3 +32,5 @@ const styles = StyleSheet.create({
     zIndex: 100,
   },
 });
+
+export default PageLayout;

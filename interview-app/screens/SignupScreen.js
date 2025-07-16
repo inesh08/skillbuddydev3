@@ -18,6 +18,7 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
 import { useAuthStore } from '../services/Zuststand';
+import ConfettiAnimation from '../components/ConfettiAnimation';
 
 export default function SignupScreen() {
   const navigation = useNavigation();
@@ -28,9 +29,11 @@ export default function SignupScreen() {
   const [showPassword, setShowPassword] = useState(false);
   const [emailError, setEmailError] = useState('');
   const [passwordError, setPasswordError] = useState('');
+  const [showConfetti, setShowConfetti] = useState(false);
 
   const validateEmail = (email) => {
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    // Stricter email regex: TLD must be 2-6 letters only
+    const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,6}$/;
     return emailRegex.test(email);
   };
 
@@ -76,9 +79,11 @@ export default function SignupScreen() {
       console.log('Signup result:', result);
       
       if (result.success) {
-        console.log('Signup successful, navigating to Step1...');
-        // Navigate to onboarding after successful signup
-        navigation.navigate('Step1');
+        setShowConfetti(true);
+        setTimeout(() => {
+          setShowConfetti(false);
+        navigation.navigate('Home');
+        }, 2000);
       } else {
         console.log('Signup failed:', result.error);
         if (result.error && result.error.toLowerCase().includes('user already exists')) {
@@ -105,6 +110,10 @@ export default function SignupScreen() {
   };
 
   const isButtonEnabled = email.trim() && password.trim() && !isLoading;
+
+  if (showConfetti) {
+    return <ConfettiAnimation successText="Account Created!" subText="Welcome to Skill Buddy" />;
+  }
 
   return (
     <SafeAreaView style={styles.safeArea}>

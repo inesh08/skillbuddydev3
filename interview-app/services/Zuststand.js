@@ -28,17 +28,73 @@ export const useAuthStore = create((set, get) => ({
       // Set user ID for future API calls
       apiService.setUserId(response.user_id);
       
-      set({ 
-        user: { 
-          id: response.user_id,
-          email: response.user.email, 
-          name: response.user.profile?.name || response.user.email.split('@')[0],
-          profile: response.user.profile || {}
-        },
-        isLoggedIn: true,
-        isLoading: false,
-        showConfetti: true
-      });
+      // Get complete user profile including social links
+      try {
+        const profileResponse = await apiService.getProfile();
+        const socialLinksResponse = await apiService.getSocialLinks();
+        
+        const completeUserData = {
+          ...response.user,
+          profile: {
+            ...response.user.profile,
+            social_links: socialLinksResponse.social_links || {}
+          }
+        };
+        
+        // Store complete user data
+        await AsyncStorage.setItem('user_data', JSON.stringify(completeUserData));
+        
+        set({ 
+          user: { 
+            id: response.user_id,
+            email: response.user.email, 
+            name: completeUserData.profile?.name || response.user.email.split('@')[0],
+            profile: completeUserData.profile || {}
+          },
+          isLoggedIn: true,
+          isLoading: false,
+          showConfetti: true
+        });
+        
+        // Ensure all user data is loaded
+        setTimeout(async () => {
+          try {
+            await apiService.ensureUserDataLoaded();
+            
+            // Refresh other stores
+            const { useXPStore } = require('./xpStore');
+            const { useOnboardingStore } = require('./onboardingStore');
+            
+            const xpStore = useXPStore.getState();
+            const onboardingStore = useOnboardingStore.getState();
+            
+            if (xpStore.loadXPData) {
+              xpStore.loadXPData();
+            }
+            
+            if (onboardingStore.loadOnboardingData) {
+              onboardingStore.loadOnboardingData();
+            }
+          } catch (error) {
+            console.error('Error loading additional user data:', error);
+          }
+        }, 100);
+        
+      } catch (profileError) {
+        console.error('Failed to load complete profile, using basic data:', profileError);
+        
+        set({ 
+          user: { 
+            id: response.user_id,
+            email: response.user.email, 
+            name: response.user.profile?.name || response.user.email.split('@')[0],
+            profile: response.user.profile || {}
+          },
+          isLoggedIn: true,
+          isLoading: false,
+          showConfetti: true
+        });
+      }
       
       return { success: true };
     } catch (error) {
@@ -53,8 +109,26 @@ export const useAuthStore = create((set, get) => ({
     set({ isLoading: true });
     
     try {
-      console.log('Attempting signup with:', email);
-      const response = await apiService.register(email, password);
+      // Get onboarding data from Zustand store
+      const { useOnboardingStore } = require('./onboardingStore');
+      const onboardingStore = useOnboardingStore.getState();
+      const onboardingData = onboardingStore.onboardingData;
+      
+      console.log('Onboarding data to include in signup:', onboardingData);
+      
+      // Prepare registration data with onboarding information
+      const registrationData = {
+        email,
+        password,
+        name: onboardingData.name || '',
+        profession: onboardingData.profession || '',
+        career_choices: onboardingData.career_choices || [],
+        college_name: onboardingData.college_name || '',
+        college_email: onboardingData.college_email || ''
+      };
+      
+      console.log('Attempting signup with complete data:', { email, hasOnboardingData: !!onboardingData.name });
+      const response = await apiService.registerWithOnboarding(registrationData);
       console.log('Signup response:', response);
       
       // Store user data locally
@@ -64,6 +138,15 @@ export const useAuthStore = create((set, get) => ({
       
       // Set user ID for future API calls
       apiService.setUserId(response.user_id);
+      
+      // Set user ID in onboarding store for future use
+      onboardingStore.setUserId(response.user_id);
+      
+      // Mark that onboarding data was sent during signup
+      onboardingStore.markOnboardingSentDuringSignup();
+      
+      // Clear onboarding data from local storage since it's now in backend
+      await onboardingStore.resetOnboarding();
       
       set({ 
         user: { 
@@ -75,13 +158,13 @@ export const useAuthStore = create((set, get) => ({
         isLoggedIn: true,
         isLoading: false,
         showConfetti: true,
-        needsOnboarding: true
+        needsOnboarding: false // Set to false since onboarding data is included
       });
       
-      console.log('Zustand signup completed successfully');
+      console.log('Zustand signup completed successfully with onboarding data');
       return { success: true };
     } catch (error) {
-      // console.error('Zustand signup error:', error);
+      console.error('Zustand signup error:', error);
       set({ isLoading: false });
       return { success: false, error: error.message || 'Could not create account!' };
     }
@@ -94,7 +177,7 @@ export const useAuthStore = create((set, get) => ({
     } catch (error) {
       console.error('Logout API call failed:', error);
     } finally {
-      // Clear stored data regardless of API call success
+      // Clear authentication data but preserve some user context
       await AsyncStorage.removeItem('user_id');
       await AsyncStorage.removeItem('user_email');
       await AsyncStorage.removeItem('user_data');
@@ -123,23 +206,52 @@ export const useAuthStore = create((set, get) => ({
         apiService.setUserId(userId);
         
         try {
-          // Try to get updated profile from backend
+          // Try to get updated profile and social links from backend
           const profileResponse = await apiService.getProfile();
+          const socialLinksResponse = await apiService.getSocialLinks();
+          
+          const completeUserData = {
+            ...profileResponse.user,
+            profile: {
+              ...profileResponse.user.profile,
+              social_links: socialLinksResponse.social_links || {}
+            }
+          };
+          
+          // Update stored user data with fresh data
+          await AsyncStorage.setItem('user_data', JSON.stringify(completeUserData));
           
           set({ 
             user: { 
               id: userId,
               email: userEmail,
-              name: profileResponse.user.profile?.name || userEmail.split('@')[0],
-              profile: profileResponse.user.profile || {}
+              name: completeUserData.profile?.name || userEmail.split('@')[0],
+              profile: completeUserData.profile || {}
             },
             isLoggedIn: true,
             isLoading: false
           });
+          
+          // Trigger data refresh for other stores
+          setTimeout(() => {
+            // Refresh XP data
+            const { useXPStore } = require('./xpStore');
+            const xpStore = useXPStore.getState();
+            if (xpStore.loadXPData) {
+              xpStore.loadXPData();
+            }
+            
+            // Refresh onboarding data
+            const { useOnboardingStore } = require('./onboardingStore');
+            const onboardingStore = useOnboardingStore.getState();
+            if (onboardingStore.loadOnboardingData) {
+              onboardingStore.loadOnboardingData();
+            }
+          }, 100);
+          
         } catch (error) {
           console.error('Failed to fetch profile, using cached data:', error);
           
-          // Fallback to cached user data
           const cachedUser = userData ? JSON.parse(userData) : null;
           if (cachedUser) {
             set({ 
@@ -180,60 +292,86 @@ export const useAuthStore = create((set, get) => ({
       const response = await apiService.updateProfile(profileData);
       console.log('Profile update response:', response);
       
-      // Update local user state
-      const currentUser = get().user;
-      if (currentUser) {
-        const updatedUser = {
-          ...currentUser,
-          profile: { ...currentUser.profile, ...profileData }
+      // Get fresh user data including social links
+      try {
+        const profileResponse = await apiService.getProfile();
+        const socialLinksResponse = await apiService.getSocialLinks();
+        
+        const completeUserData = {
+          ...profileResponse.user,
+          profile: {
+            ...profileResponse.user.profile,
+            social_links: socialLinksResponse.social_links || {}
+          }
         };
         
-        set({ user: updatedUser });
+        // Update local storage with fresh data
+        await AsyncStorage.setItem('user_data', JSON.stringify(completeUserData));
         
-        // Update cached user data
-        await AsyncStorage.setItem('user_data', JSON.stringify({ profile: updatedUser.profile }));
+        // Update local user state
+        const currentUser = get().user;
+        set({ 
+          user: { 
+            ...currentUser,
+            name: completeUserData.profile?.name || currentUser.email.split('@')[0],
+            profile: completeUserData.profile || {}
+          }
+        });
+      } catch (refreshError) {
+        console.error('Failed to refresh user data after update:', refreshError);
+        
+        // Fallback to basic update
+        const currentUser = get().user;
+        set({ 
+          user: { 
+            ...currentUser,
+            name: profileData.name || currentUser.email.split('@')[0],
+            profile: {
+              ...currentUser.profile,
+              ...profileData
+            }
+          }
+        });
       }
       
-      return { success: true, data: response };
+      return { success: true };
     } catch (error) {
       console.error('Profile update error:', error);
       return { success: false, error: error.message || 'Profile update failed!' };
     }
   },
   
-  hideConfetti: () => {
-    set({ showConfetti: false });
-  },
-  
-  // Helper method to get current user ID
-  getCurrentUserId: () => {
-    const { user } = get();
-    return user?.id || null;
-  },
-  
-  // Helper method to check if user is authenticated
   isAuthenticated: () => {
-    const { isLoggedIn, user } = get();
-    return isLoggedIn && user !== null;
+    return get().isLoggedIn && get().user !== null;
   },
   
-  // Refresh user data from backend
   refreshUserData: async () => {
     const { user } = get();
-    if (!user) return;
+    if (!user?.id) return;
     
     try {
       const profileResponse = await apiService.getProfile();
+      const socialLinksResponse = await apiService.getSocialLinks();
       
+      const completeUserData = {
+        ...profileResponse.user,
+        profile: {
+          ...profileResponse.user.profile,
+          social_links: socialLinksResponse.social_links || {}
+        }
+      };
+      
+      // Update local storage
+      await AsyncStorage.setItem('user_data', JSON.stringify(completeUserData));
+      
+      // Update state
       set({ 
         user: { 
           ...user,
-          profile: profileResponse.user.profile || {}
+          name: completeUserData.profile?.name || user.email.split('@')[0],
+          profile: completeUserData.profile || {}
         }
       });
-      
-      // Update cached data
-      await AsyncStorage.setItem('user_data', JSON.stringify(profileResponse.user));
     } catch (error) {
       console.error('Failed to refresh user data:', error);
     }

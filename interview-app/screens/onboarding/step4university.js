@@ -19,6 +19,7 @@ import AnimatedBackground from '../../components/AnimatedBackground';
 import RocketAnimation from '../../components/RocketAnimation';
 import PageLayout from '../../components/layouts/PageLayout';
 import { useOnboardingStore } from '../../services/onboardingStore';
+import { useAuthStore } from '../../services/Zuststand';
 import { useProgress } from '../../hooks/useProgress';
 
 export default function CollegeInfoScreen({ navigation }) {
@@ -27,6 +28,7 @@ export default function CollegeInfoScreen({ navigation }) {
   const [showConfetti, setShowConfetti] = useState(false);
   const inputRef = useRef(null);
   
+  const { user } = useAuthStore();
   const { 
     onboardingData, 
     isLoading, 
@@ -34,23 +36,25 @@ export default function CollegeInfoScreen({ navigation }) {
     saveStep4Data, 
     completeOnboarding,
     loadOnboardingData,
+    setUserId,
     clearError 
   } = useOnboardingStore();
   
-  const { getOnboardingProgress } = useProgress();
+  const { getOnboardingProgress, loadProgressData, reloadProgressData } = useProgress();
 
   useEffect(() => {
-    // Load saved onboarding data
+    // Set user ID in onboarding store when user is available
+    if (user?.id) {
+      setUserId(user.id);
+    }
+    
+    // Load saved onboarding data (but don't pre-fill)
     loadOnboardingData();
     
-    // Pre-fill college info if already saved
-    if (onboardingData.college_name) {
-      setCollegeName(onboardingData.college_name);
-    }
-    if (onboardingData.college_email) {
-      setCollegeEmail(onboardingData.college_email);
-    }
-  }, []);
+    // Don't pre-fill college info - start with empty fields
+    setCollegeName('');
+    setCollegeEmail('');
+  }, [user?.id]);
 
   useEffect(() => {
     // Clear error when component mounts
@@ -58,7 +62,8 @@ export default function CollegeInfoScreen({ navigation }) {
   }, []);
 
   const isValidEmail = (email) => {
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    // Stricter email regex: TLD must be 2-6 letters only
+    const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,6}$/;
     return emailRegex.test(email);
   };
 
@@ -79,14 +84,19 @@ export default function CollegeInfoScreen({ navigation }) {
       // Save step 4 data locally
       await saveStep4Data(collegeName.trim(), collegeEmail.trim());
       
-      // Complete onboarding and send all data to backend
+      // Complete onboarding (data already sent during signup)
       await completeOnboarding();
+      
+      // Force reload progress data to update home screen
+      await reloadProgressData();
+      
       setShowConfetti(true);
 
       setTimeout(() => {
-        navigation.replace('Home');
+        navigation.replace('Signup');
       }, 3000);
     } catch (error) {
+      console.error('Error completing onboarding:', error);
       Alert.alert(
         'Error', 
         'Failed to complete onboarding. Please check your connection and try again.',

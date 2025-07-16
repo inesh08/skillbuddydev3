@@ -18,6 +18,7 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
 import { useAuthStore } from '../services/Zuststand';
+import ConfettiAnimation from '../components/ConfettiAnimation';
 
 export default function LoginScreen() {
   const navigation = useNavigation();
@@ -28,9 +29,11 @@ export default function LoginScreen() {
   const [showPassword, setShowPassword] = useState(false);
   const [emailError, setEmailError] = useState('');
   const [passwordError, setPasswordError] = useState('');
+  const [showConfetti, setShowConfetti] = useState(false);
 
   const validateEmail = (email) => {
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    // Stricter email regex: TLD must be 2-6 letters only
+    const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,6}$/;
     return emailRegex.test(email);
   };
 
@@ -71,8 +74,11 @@ export default function LoginScreen() {
       const result = await login(email.trim(), password);
       
       if (result.success) {
-        // Navigate to home screen
+        setShowConfetti(true);
+        setTimeout(() => {
+          setShowConfetti(false);
         navigation.replace('Home');
+        }, 2000);
       } else {
         Alert.alert('Login Failed', result.error || 'Please check your credentials and try again.');
       }
@@ -86,6 +92,10 @@ export default function LoginScreen() {
   };
 
   const isButtonEnabled = email.trim() && password.trim() && !isLoading;
+
+  if (showConfetti) {
+    return <ConfettiAnimation successText="Login Successful!" subText="Welcome back to Skill Buddy" />;
+  }
 
   return (
     <SafeAreaView style={styles.safeArea}>

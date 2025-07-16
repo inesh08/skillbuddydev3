@@ -4,6 +4,11 @@ import { NavigationContainer } from '@react-navigation/native';
 import { createStackNavigator } from '@react-navigation/stack';
 import { useAuthStore } from '../services/Zuststand';
 import AuthGuard from '../components/AuthGuard';
+import { 
+  getOnboardingScreenOptions, 
+  getStandardScreenOptions,
+  getModalScreenOptions 
+} from '../utils/navigationUtils';
 
 // Import your screens
 import IntroScreen from '../screens/IntroScreen';
@@ -15,6 +20,13 @@ import SignupScreen from '../screens/SignupScreen';
 import ProfileScreen from '../screens/ProfileScreen';
 import SocialLinksScreen from '../screens/SocialLinksScreen';
 import ResumeUploadScreen from '../screens/ResumeUploadScreen';
+import GitHubUploadScreen from '../screens/GitHubUploadScreen';
+import GitHubAnalysisResultsScreen from '../screens/GitHubAnalysisResultsScreen';
+import GitHubHistoryScreen from '../screens/GitHubHistoryScreen';
+import LinkedInAnalysisScreen from '../screens/LinkedInAnalysisScreen';
+import LinkedInUploadScreen from '../screens/LinkedInUploadScreen';
+import LinkedInAnalysisResultsScreen from '../screens/LinkedInAnalysisResultsScreen';
+import LinkedInHistoryScreen from '../screens/LinkedInHistoryScreen';
 import AnalysisScreen from '../screens/AnalysisScreen';
 import InterviewScreen from '../screens/InterviewScreen';
 import InterviewResultsScreen from '../screens/InterviewResultsScreen';
@@ -52,6 +64,8 @@ const SocialLinksScreenWithAuth = (props) => (
   </AuthGuard>
 );
 
+
+
 export default function StackNavigation() {
   const { isLoggedIn, isLoading, checkLogin, needsOnboarding } = useAuthStore();
 
@@ -65,18 +79,44 @@ export default function StackNavigation() {
       <NavigationContainer>
         <Stack.Navigator 
           initialRouteName="Intro"
-          screenOptions={{
-            headerShown: false,
-            cardStyle: { backgroundColor: '#1A1A1A' },
-            gestureEnabled: true,
-            gestureDirection: 'horizontal',
-          }}
+                  screenOptions={getStandardScreenOptions()}
         >
           <Stack.Screen name="Intro" component={IntroScreen} />
           <Stack.Screen name="About" component={AboutScreen} />
           <Stack.Screen name="Questions" component={IntroQuestionScreen} />
           <Stack.Screen name="Login" component={LoginScreen} />
           <Stack.Screen name="Signup" component={SignupScreen} />
+          
+          {/* Include onboarding screens in loading stack - No Back Navigation */}
+          <Stack.Screen 
+            name="Step1" 
+            component={Step1Name}
+            options={getOnboardingScreenOptions()}
+          />
+          
+          <Stack.Screen 
+            name="Step2" 
+            component={Step2Profession}
+            options={getOnboardingScreenOptions()}
+          />
+          
+          <Stack.Screen 
+            name="Step3" 
+            component={CareerChoicesScreen}
+            options={getOnboardingScreenOptions()}
+          />
+          
+          <Stack.Screen 
+            name="Step4" 
+            component={Step4University}
+            options={getOnboardingScreenOptions()}
+          />
+          
+          <Stack.Screen 
+            name="OnboardingComplete" 
+            component={OnboardingComplete}
+            options={getOnboardingScreenOptions()}
+          />
         </Stack.Navigator>
       </NavigationContainer>
     );
@@ -86,12 +126,7 @@ export default function StackNavigation() {
     <NavigationContainer>
       <Stack.Navigator 
         initialRouteName={needsOnboarding ? "Step1" : (isLoggedIn ? "Home" : "Intro")}
-        screenOptions={{
-          headerShown: false, // Hide default headers for custom design
-          cardStyle: { backgroundColor: '#1A1A1A' }, // Dark background
-          gestureEnabled: true,
-          gestureDirection: 'horizontal',
-        }}
+        screenOptions={getStandardScreenOptions()}
       >
         {/* Main Flow */}
         <Stack.Screen 
@@ -105,177 +140,177 @@ export default function StackNavigation() {
         <Stack.Screen 
           name="About" 
           component={AboutScreen}
-          options={{
-            gestureDirection: 'horizontal',
-          }}
+          options={getStandardScreenOptions()}
         />
         
         <Stack.Screen 
           name="Questions" 
           component={IntroQuestionScreen}
-          options={{
-            gestureDirection: 'horizontal',
-          }}
+          options={getStandardScreenOptions()}
         />
         
         <Stack.Screen 
           name="Home" 
           component={HomeScreenWithAuth}
-          options={{
-            gestureDirection: 'horizontal',
-            gestureEnabled: false, // Disable swipe back gesture
-            headerLeft: null, // Remove back button
-            headerBackVisible: false, // Hide back button
-          }}
+          options={getStandardScreenOptions({
+            gestureEnabled: false,
+            headerLeft: null,
+            headerBackVisible: false,
+          })}
         />
 
         {/* Authentication Screens */}
         <Stack.Screen 
           name="Login" 
           component={LoginScreen}
-          options={{
-            gestureDirection: 'horizontal',
-          }}
+          options={getStandardScreenOptions()}
         />
         <Stack.Screen 
           name="Signup" 
           component={SignupScreen}
-          options={{
-            gestureDirection: 'horizontal',
-          }}
+          options={getStandardScreenOptions()}
         />
         
         {/* Profile and Settings */}
         <Stack.Screen 
           name="Profile" 
           component={ProfileScreenWithAuth}
-          options={{
-            gestureDirection: 'horizontal',
-          }}
+          options={getStandardScreenOptions()}
         />
         
         <Stack.Screen 
           name="SocialLinks" 
           component={SocialLinksScreenWithAuth}
-          options={{
-            gestureDirection: 'horizontal',
-          }}
+          options={getStandardScreenOptions()}
         />
         
         <Stack.Screen 
           name="ResumeUpload" 
           component={ResumeUploadScreen}
-          options={{
-            gestureDirection: 'horizontal',
-          }}
+          options={getStandardScreenOptions()}
+        />
+        
+        <Stack.Screen 
+          name="GitHubUpload" 
+          component={GitHubUploadScreen}
+          options={getStandardScreenOptions()}
+        />
+        <Stack.Screen 
+          name="GitHubAnalysisResults" 
+          component={GitHubAnalysisResultsScreen}
+          options={getStandardScreenOptions()}
+        />
+        
+        <Stack.Screen 
+          name="LinkedInAnalysis" 
+          component={LinkedInAnalysisScreen}
+          options={getStandardScreenOptions()}
+        />
+        
+        <Stack.Screen 
+          name="LinkedInUpload" 
+          component={LinkedInUploadScreen}
+          options={getStandardScreenOptions()}
+        />
+        
+        <Stack.Screen 
+          name="LinkedInAnalysisResults" 
+          component={LinkedInAnalysisResultsScreen}
+          options={getStandardScreenOptions()}
+        />
+        
+        <Stack.Screen 
+          name="GitHubHistory" 
+          component={GitHubHistoryScreen}
+          options={getStandardScreenOptions()}
+        />
+        
+        <Stack.Screen 
+          name="LinkedInHistory" 
+          component={LinkedInHistoryScreen}
+          options={getStandardScreenOptions()}
         />
         
         <Stack.Screen 
           name="AnalysisScreen" 
           component={AnalysisScreen}
-          options={{
-            gestureDirection: 'horizontal',
-          }}
+          options={getStandardScreenOptions()}
         />
         
-        {/* Onboarding Flow */}
+        {/* Onboarding Flow - Optimized Transitions */}
         <Stack.Screen 
           name="Step1" 
           component={Step1Name}
-          options={{
-            gestureDirection: 'horizontal',
-          }}
+          options={getOnboardingScreenOptions()}
         />
         
         <Stack.Screen 
           name="Step2" 
           component={Step2Profession}
-          options={{
-            gestureDirection: 'horizontal',
-          }}
+          options={getOnboardingScreenOptions()}
         />
         
         <Stack.Screen 
           name="Step3" 
           component={CareerChoicesScreen}
-          options={{
-            gestureDirection: 'horizontal',
-          }}
+          options={getOnboardingScreenOptions()}
         />
         
         <Stack.Screen 
           name="Step4" 
           component={Step4University}
-          options={{
-            gestureDirection: 'horizontal',
-          }}
+          options={getOnboardingScreenOptions()}
         />
         
         <Stack.Screen 
           name="OnboardingComplete" 
           component={OnboardingComplete}
-          options={{
-            gestureDirection: 'horizontal',
-          }}
+          options={getOnboardingScreenOptions()}
         />
 
         {/* Interview Flow */}
         <Stack.Screen 
           name="Interview" 
           component={InterviewScreen}
-          options={{
-            gestureDirection: 'horizontal',
-          }}
+          options={getStandardScreenOptions()}
         />
         
         <Stack.Screen 
           name="InterviewResults" 
           component={InterviewResultsScreen}
-          options={{
-            gestureDirection: 'horizontal',
-          }}
+          options={getStandardScreenOptions()}
         />
 
         {/* Career Path Screens */}
         <Stack.Screen 
           name="DataAnalyst" 
           component={DataAnalystScreen}
-          options={{
-            gestureDirection: 'horizontal',
-          }}
+          options={getStandardScreenOptions()}
         />
         
         <Stack.Screen 
           name="DigitalMarketer" 
           component={DigitalMarketerScreen}
-          options={{
-            gestureDirection: 'horizontal',
-          }}
+          options={getStandardScreenOptions()}
         />
         
         <Stack.Screen 
           name="SoftwareDev" 
           component={SoftwareDevScreen}
-          options={{
-            gestureDirection: 'horizontal',
-          }}
+          options={getStandardScreenOptions()}
         />
         
         <Stack.Screen 
           name="UIDesigner" 
           component={UIDesignerScreen}
-          options={{
-            gestureDirection: 'horizontal',
-          }}
+          options={getStandardScreenOptions()}
         />
 
         {/* Community Screen */}
         <Stack.Screen 
           name="Community" 
           component={CommunityScreen}
-          options={{
-            gestureDirection: 'horizontal',
-          }}
+          options={getStandardScreenOptions()}
         />
       </Stack.Navigator>
     </NavigationContainer>

@@ -19,6 +19,7 @@ import PageLayout from '../../components/layouts/PageLayout';
 import GreenButton from '../../components/atoms/GreenButton';
 import { MaterialCommunityIcons, FontAwesome5, Ionicons, Entypo, FontAwesome } from '@expo/vector-icons';
 import { useOnboardingStore } from '../../services/onboardingStore';
+import { useAuthStore } from '../../services/Zuststand';
 import { useProgress } from '../../hooks/useProgress';
 
 const { width, height } = Dimensions.get('window');
@@ -129,26 +130,31 @@ export default function CareerChoicesScreen({ navigation }) {
   const [selectedCategory, setSelectedCategory] = useState(Object.keys(categoriesData)[0]);
   const [searchText, setSearchText] = useState('');
   
+  const { user } = useAuthStore();
   const { 
     onboardingData, 
     isLoading, 
     error, 
     saveStep3Data, 
     loadOnboardingData,
+    setUserId,
     clearError 
   } = useOnboardingStore();
   
   const { getOnboardingProgress } = useProgress();
 
   useEffect(() => {
-    // Load saved onboarding data
+    // Set user ID in onboarding store when user is available
+    if (user?.id) {
+      setUserId(user.id);
+    }
+    
+    // Load saved onboarding data (but don't pre-fill)
     loadOnboardingData();
     
-    // Pre-select career choices if already saved
-    if (onboardingData.career_choices && onboardingData.career_choices.length > 0) {
-      setSelectedChoices(onboardingData.career_choices);
-    }
-  }, []);
+    // Don't pre-select career choices - start with no selections
+    setSelectedChoices([]);
+  }, [user?.id]);
 
   useEffect(() => {
     // Clear error when component mounts

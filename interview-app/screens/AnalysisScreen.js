@@ -32,14 +32,20 @@ const AnalysisScreen = ({ navigation, route }) => {
   const [error, setError] = useState(null);
   const [activeTab, setActiveTab] = useState('summary'); // 'summary', 'quality', 'tips'
   
-  // Update active tab when data loads
+  // Get initial tab from route params
+  const initialTab = route.params?.initialTab;
+  
+  // Update active tab when data loads or when initialTab is provided
   useEffect(() => {
-    if (!analysis && qualityAnalysis) {
+    // If initialTab is provided and valid, use it
+    if (initialTab && ['summary', 'quality', 'tips'].includes(initialTab)) {
+      setActiveTab(initialTab);
+    } else if (!analysis && qualityAnalysis) {
       setActiveTab('quality');
     } else if (!analysis && !qualityAnalysis && improvementTips) {
       setActiveTab('tips');
     }
-  }, [analysis, qualityAnalysis, improvementTips]);
+  }, [analysis, qualityAnalysis, improvementTips, initialTab]);
   const resumeId = route.params?.resumeId;
 
   useEffect(() => {
@@ -136,12 +142,40 @@ const AnalysisScreen = ({ navigation, route }) => {
             <Text style={[styles.scoreText, { color: getScoreColor(score) }]}>{score}/100</Text>
           </View>
         </View>
+        
+        {/* Strengths Section */}
+        {qualityAnalysis.strengths && qualityAnalysis.strengths.length > 0 && (
+          <View style={styles.strengthsContainer}>
+            <Text style={styles.strengthsTitle}>✅ Your Strengths</Text>
+            {qualityAnalysis.strengths.map((strength, index) => (
+              <View key={index} style={styles.strengthItem}>
+                <Ionicons name="checkmark-circle" size={16} color="#00ff00" />
+                <Text style={styles.strengthText}>{strength}</Text>
+              </View>
+            ))}
+          </View>
+        )}
+
+        {/* Weaknesses Section */}
+        {qualityAnalysis.weaknesses && qualityAnalysis.weaknesses.length > 0 && (
+          <View style={styles.weaknessesContainer}>
+            <Text style={styles.weaknessesTitle}>⚠️ Areas to Improve</Text>
+            {qualityAnalysis.weaknesses.map((weakness, index) => (
+              <View key={index} style={styles.weaknessItem}>
+                <Ionicons name="alert-circle" size={16} color="#ffaa00" />
+                <Text style={styles.weaknessText}>{weakness}</Text>
+              </View>
+            ))}
+          </View>
+        )}
+
+        {/* Feedback Section */}
         {qualityAnalysis.feedback && qualityAnalysis.feedback.length > 0 && (
           <View style={styles.feedbackContainer}>
-            <Text style={styles.feedbackTitle}>Areas for Improvement:</Text>
+            <Text style={styles.feedbackTitle}>Additional Feedback:</Text>
             {qualityAnalysis.feedback.map((item, index) => (
               <View key={index} style={styles.feedbackItem}>
-                <Ionicons name="alert-circle" size={16} color="#ffaa00" />
+                <Ionicons name="information-circle" size={16} color="#00aaff" />
                 <Text style={styles.feedbackText}>{item}</Text>
               </View>
             ))}
@@ -477,6 +511,54 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
   },
   feedbackText: {
+    color: '#fff',
+    fontSize: 14,
+    marginLeft: 8,
+    flex: 1,
+    lineHeight: 20,
+  },
+  strengthsContainer: {
+    marginTop: 20,
+    backgroundColor: '#1a3a1a',
+    borderRadius: 8,
+    padding: 16,
+  },
+  strengthsTitle: {
+    color: '#00ff00',
+    fontSize: 18,
+    fontWeight: '600',
+    marginBottom: 12,
+  },
+  strengthItem: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    marginBottom: 8,
+  },
+  strengthText: {
+    color: '#fff',
+    fontSize: 14,
+    marginLeft: 8,
+    flex: 1,
+    lineHeight: 20,
+  },
+  weaknessesContainer: {
+    marginTop: 16,
+    backgroundColor: '#3a2a1a',
+    borderRadius: 8,
+    padding: 16,
+  },
+  weaknessesTitle: {
+    color: '#ffaa00',
+    fontSize: 18,
+    fontWeight: '600',
+    marginBottom: 12,
+  },
+  weaknessItem: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    marginBottom: 8,
+  },
+  weaknessText: {
     color: '#fff',
     fontSize: 14,
     marginLeft: 8,

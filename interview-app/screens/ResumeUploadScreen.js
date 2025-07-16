@@ -20,6 +20,7 @@ import ConfettiAnimation from '../components/ConfettiAnimation';
 import PeppyImage from '../components/atoms/PeppyImage';
 import AnimatedBackground from '../components/AnimatedBackground';
 import PageLayout from '../components/layouts/PageLayout';
+import { useFocusEffect } from '@react-navigation/native';
 
 const { width, height } = Dimensions.get('window');
 
@@ -88,8 +89,9 @@ const ResumeUploadScreen = ({ navigation }) => {
 
   useEffect(() => {
     const loadLatestResume = async () => {
-      if (!isLoggedIn || !user) return;
+      if (!isLoggedIn || !user?.id) return;
       try {
+        console.log('Loading latest resume for user:', user.id);
         apiService.setUserId(user.id);
         const userResumes = await apiService.getUserResumes();
         if (userResumes.resumes && userResumes.resumes.length > 0) {
@@ -109,6 +111,7 @@ const ResumeUploadScreen = ({ navigation }) => {
           setShowSummary(true);
         }
       } catch (error) {
+        console.error('Error loading latest resume:', error);
         // Fallback: try to load from AsyncStorage
         try {
           const hasResume = await AsyncStorage.getItem('hasResume');
@@ -117,12 +120,51 @@ const ResumeUploadScreen = ({ navigation }) => {
             setSelectedFile({ name: 'Resume.pdf', size: 0, uri: '' });
             setUploadSuccess(true);
           }
-        } catch (e) {}
+        } catch (e) {
+          console.error('Error loading from AsyncStorage:', e);
+        }
       }
     };
-    loadLatestResume();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isLoggedIn, user]);
+    
+    // Add a small delay to ensure user data is fully loaded
+    const timer = setTimeout(() => {
+      loadLatestResume();
+    }, 500);
+    
+    return () => clearTimeout(timer);
+  }, [isLoggedIn, user?.id]);
+
+  // Add focus effect to reload data when screen is focused
+  useFocusEffect(
+    React.useCallback(() => {
+      if (isLoggedIn && user?.id) {
+        const loadLatestResume = async () => {
+          try {
+            console.log('Reloading resume data on focus for user:', user.id);
+            apiService.setUserId(user.id);
+            const userResumes = await apiService.getUserResumes();
+            if (userResumes.resumes && userResumes.resumes.length > 0) {
+              const latestResume = userResumes.resumes[0];
+              setSelectedFile({
+                name: latestResume.filename || 'Resume.pdf',
+                size: latestResume.file_size || 0,
+                uri: '',
+              });
+              setResumeId(latestResume.id);
+              setUploadSuccess(true);
+              checkProcessingStatus(latestResume.id);
+              await fetchAllResumeData(latestResume.id);
+              setShowSummary(true);
+            }
+          } catch (error) {
+            console.error('Error reloading resume data:', error);
+          }
+        };
+        
+        loadLatestResume();
+      }
+    }, [isLoggedIn, user?.id])
+  );
 
   const allowedExtensions = ['.pdf'];
 
@@ -682,17 +724,43 @@ const ResumeUploadScreen = ({ navigation }) => {
         {/* Resume Summary */}
         {/* <ResumeSummary /> */}
 
-        {/* After upload success, show a View Summary button */}
-        {uploadSuccess && resumeId && (
+        {/* After upload success, show a View Summary button only when processing is completed */}
+        {uploadSuccess && resumeId && processingStatus?.status === 'completed' && (
           <View style={{ alignItems: 'center', marginVertical: 20 }}>
             <TouchableOpacity
               style={{ backgroundColor: '#00ff00', borderRadius: 8, paddingVertical: 12, paddingHorizontal: 32 }}
-              onPress={() => navigation.navigate('AnalysisScreen', { resumeId })}
+              onPress={() => navigation.navigate('AnalysisScreen', { resumeId, initialTab: 'quality' })}
             >
               <Text style={{ color: '#181c20', fontWeight: '700', fontSize: 16 }}>
-                {processingStatus?.status === 'completed' ? 'View Summary' : 'View Summary (Processing...)'}
+                View Summary
               </Text>
             </TouchableOpacity>
+          </View>
+        )}
+
+        {/* Show processing status when upload is successful but processing is not completed */}
+        {uploadSuccess && resumeId && processingStatus?.status !== 'completed' && (
+          <View style={{ alignItems: 'center', marginVertical: 20 }}>
+            <View style={{ 
+              backgroundColor: 'rgba(0, 255, 0, 0.1)', 
+              borderRadius: 8, 
+              paddingVertical: 12, 
+              paddingHorizontal: 32,
+              borderWidth: 1,
+              borderColor: '#00ff00'
+            }}>
+              <Text style={{ color: '#00ff00', fontWeight: '600', fontSize: 16, textAlign: 'center' }}>
+                {processingStatus?.status === 'processing' ? 'Processing Resume...' : 
+                 processingStatus?.status === 'pending' ? 'Resume Queued for Processing...' :
+                 processingStatus?.status === 'failed' ? 'Processing Failed' :
+                 'Processing Status: ' + (processingStatus?.status || 'Unknown')}
+              </Text>
+              {processingStatus?.status === 'processing' && (
+                <Text style={{ color: '#999', fontSize: 12, textAlign: 'center', marginTop: 4 }}>
+                  This may take a few minutes
+                </Text>
+              )}
+            </View>
           </View>
         )}
         {/* Only show ExtractionResults if showResults is true and not after upload */}

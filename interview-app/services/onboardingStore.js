@@ -16,16 +16,41 @@ export const useOnboardingStore = create((set, get) => ({
   isLoading: false,
   error: null,
   isOnboardingComplete: false,
+  userId: null,
+  onboardingSentDuringSignup: false, // Track if onboarding was sent during signup
 
   // Actions
+  setUserId: (userId) => {
+    set({ userId });
+  },
+
+  // Mark that onboarding data was sent during signup
+  markOnboardingSentDuringSignup: () => {
+    set({ onboardingSentDuringSignup: true });
+  },
+
+  // Get storage key based on current user
+  getStorageKey: () => {
+    const { userId } = get();
+    return userId ? `onboardingData_${userId}` : 'onboardingData';
+  },
+
+  // Get completion key based on current user
+  getCompletionKey: () => {
+    const { userId } = get();
+    return userId ? `onboardingComplete_${userId}` : 'onboardingComplete';
+  },
+
   loadOnboardingData: async () => {
     try {
-      const savedData = await SecureStore.getItemAsync('onboardingData');
+      const storageKey = get().getStorageKey();
+      const savedData = await SecureStore.getItemAsync(storageKey);
       if (savedData) {
         set({ onboardingData: JSON.parse(savedData) });
       }
       
-      const isComplete = await SecureStore.getItemAsync('onboardingComplete');
+      const completionKey = get().getCompletionKey();
+      const isComplete = await SecureStore.getItemAsync(completionKey);
       if (isComplete === 'true') {
         set({ isOnboardingComplete: true });
       }
@@ -38,19 +63,37 @@ export const useOnboardingStore = create((set, get) => ({
     try {
       const newData = { ...get().onboardingData, ...data };
       set({ onboardingData: newData });
-      await SecureStore.setItemAsync('onboardingData', JSON.stringify(newData));
+      const storageKey = get().getStorageKey();
+      await SecureStore.setItemAsync(storageKey, JSON.stringify(newData));
     } catch (error) {
       console.error('Error saving onboarding data:', error);
     }
   },
 
-  // New function to send all onboarding data to backend
+  // Send all onboarding data to backend
   sendOnboardingDataToBackend: async () => {
     set({ isLoading: true, error: null });
 
     try {
-      const { onboardingData } = get();
+      const { onboardingData, userId } = get();
+      
+      // Try to get user ID from onboarding store first, then from auth store
+      let currentUserId = userId;
+      if (!currentUserId) {
+        const { useAuthStore } = require('./Zuststand');
+        const authStore = useAuthStore.getState();
+        currentUserId = authStore.user?.id;
+      }
+      
+      // Ensure we have a user ID for the API call
+      if (!currentUserId) {
+        throw new Error('User ID is required to save onboarding data');
+      }
+
       console.log('Sending onboarding data to backend:', onboardingData);
+      
+      // Set user ID for API service
+      apiService.setUserId(currentUserId);
       
       const response = await apiService.updateProfile(onboardingData);
       console.log('Onboarding data sent successfully:', response);
@@ -106,12 +149,35 @@ export const useOnboardingStore = create((set, get) => ({
 
   completeOnboarding: async () => {
     try {
-      // Send all onboarding data to backend
-      await get().sendOnboardingDataToBackend();
+      set({ isLoading: true, error: null });
+      
+      // Ensure we have the user ID set in onboarding store
+      let { onboardingSentDuringSignup, userId } = get();
+      if (!userId) {
+        const { useAuthStore } = require('./Zuststand');
+        const authStore = useAuthStore.getState();
+        userId = authStore.user?.id;
+        if (userId) {
+          set({ userId });
+        }
+      }
+      
+      // If onboarding was already sent during signup, just mark as complete
+      if (onboardingSentDuringSignup) {
+        console.log('Onboarding data already sent during signup, marking as complete');
+      } else {
+        // Send all onboarding data to backend only if not sent during signup
+        await get().sendOnboardingDataToBackend();
+      }
       
       // Mark onboarding as complete
-      await SecureStore.setItemAsync('onboardingComplete', 'true');
-      await SecureStore.deleteItemAsync('onboardingData');
+      const completionKey = get().getCompletionKey();
+      await SecureStore.setItemAsync(completionKey, 'true');
+      
+      // Clear onboarding data from storage
+      const storageKey = get().getStorageKey();
+      await SecureStore.deleteItemAsync(storageKey);
+      
       set({ 
         isOnboardingComplete: true,
         onboardingData: {
@@ -122,18 +188,33 @@ export const useOnboardingStore = create((set, get) => ({
           college_email: '',
         },
         currentStep: 1,
-        error: null
+        error: null,
+        onboardingSentDuringSignup: false // Reset flag
       });
+      
+      // Refresh user data to update progress and XP
+      const { useAuthStore } = require('./Zuststand');
+      const authStore = useAuthStore.getState();
+      await authStore.refreshUserData();
+      
+      console.log('Onboarding completed successfully');
     } catch (error) {
       console.error('Error completing onboarding:', error);
+      set({ error: error.message });
       throw error;
+    } finally {
+      set({ isLoading: false });
     }
   },
 
   resetOnboarding: async () => {
     try {
-      await SecureStore.deleteItemAsync('onboardingData');
-      await SecureStore.deleteItemAsync('onboardingComplete');
+      const storageKey = get().getStorageKey();
+      const completionKey = get().getCompletionKey();
+      
+      await SecureStore.deleteItemAsync(storageKey);
+      await SecureStore.deleteItemAsync(completionKey);
+      
       set({ 
         onboardingData: {
           name: '',
@@ -144,7 +225,8 @@ export const useOnboardingStore = create((set, get) => ({
         },
         currentStep: 1,
         error: null,
-        isOnboardingComplete: false
+        isOnboardingComplete: false,
+        onboardingSentDuringSignup: false
       });
     } catch (error) {
       console.error('Error resetting onboarding:', error);
@@ -154,4 +236,20 @@ export const useOnboardingStore = create((set, get) => ({
   setError: (error) => set({ error }),
   clearError: () => set({ error: null }),
   setCurrentStep: (step) => set({ currentStep: step }),
+
+  // Initialize onboarding store with user ID from auth store
+  initializeOnboardingStore: async () => {
+    try {
+      const { useAuthStore } = require('./Zuststand');
+      const authStore = useAuthStore.getState();
+      const userId = authStore.user?.id;
+      
+      if (userId) {
+        set({ userId });
+        await get().loadOnboardingData();
+      }
+    } catch (error) {
+      console.error('Error initializing onboarding store:', error);
+    }
+  },
 })); 

@@ -13,16 +13,27 @@ import {
   Modal,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import { useAuthStore } from '../services/Zuststand';
+import { useXPStore } from '../services/xpStore';
 import apiService from '../services/apiService';
 import AnimatedBackground from '../components/AnimatedBackground';
 import { useProgress } from '../hooks/useProgress';
 
 export default function ProfileScreen() {
   const navigation = useNavigation();
-  const { user, updateUserProfile, logout, isAuthenticated } = useAuthStore();
-  const { profileCompletionPercentage, xpProgressPercentage, currentLevel, totalXP, loadProgressData } = useProgress();
+  const { user, updateUserProfile, logout, isAuthenticated, refreshUserData } = useAuthStore();
+  const { profileCompletionPercentage, loadProgressData } = useProgress();
+  const { 
+    totalXP, 
+    level, 
+    currentLevelXP, 
+    xpToNextLevel, 
+    getProgressPercentage, 
+    getCurrentBadge,
+    loadXPData 
+  } = useXPStore();
+  
   const [isLoading, setIsLoading] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [showLogoutModal, setShowLogoutModal] = useState(false);
@@ -39,19 +50,29 @@ export default function ProfileScreen() {
   const careerOptions = ['Software Developer', 'Data Analyst', 'Digital Marketer', 'UI/UX Designer', 'Product Manager'];
 
   useEffect(() => {
-    if (isAuthenticated()) {
+    if (isAuthenticated() && user?.id) {
       loadProfileData();
     }
-  }, []);
+  }, [user?.id]);
+
+  // Add focus effect to reload data when screen is focused
+  useFocusEffect(
+    React.useCallback(() => {
+      if (isAuthenticated() && user?.id) {
+        loadProfileData();
+      }
+    }, [user?.id])
+  );
 
   const loadProfileData = async () => {
     try {
       setIsLoading(true);
       
       // Load profile data
-      const profileResponse = await apiService.getProfile();
-      const profile = profileResponse.user.profile || {};
+      const response = await apiService.getProfile();
+      console.log('Profile response:', response);
       
+      const profile = response.user?.profile || {};
       setProfileData({
         name: profile.name || '',
         profession: profile.profession || '',
@@ -59,10 +80,12 @@ export default function ProfileScreen() {
         college_name: profile.college_name || '',
         college_email: profile.college_email || '',
       });
-
-      // Load progress data using the hook
+      
+      // Load progress data
       await loadProgressData();
-
+      
+      // Load XP data
+      await loadXPData();
     } catch (error) {
       console.error('Error loading profile data:', error);
       Alert.alert('Error', 'Failed to load profile data. Please try again.');
@@ -72,27 +95,44 @@ export default function ProfileScreen() {
   };
 
   const handleSave = async () => {
-    if (!profileData.name.trim()) {
-      Alert.alert('Error', 'Name is required.');
-      return;
-    }
-
     try {
       setIsLoading(true);
       
-      const result = await updateUserProfile(profileData);
-      
-      if (result.success) {
-        setIsEditing(false);
-        Alert.alert('Success', 'Profile updated successfully!');
-        // Reload data to get updated completion status
-        loadProfileData();
-      } else {
-        Alert.alert('Error', result.error || 'Failed to update profile.');
+      // Validate required fields
+      if (!profileData.name.trim()) {
+        Alert.alert('Error', 'Name is required.');
+        return;
       }
+      
+      if (!profileData.profession) {
+        Alert.alert('Error', 'Please select your profession.');
+        return;
+      }
+      
+      if (!profileData.career_choices || profileData.career_choices.length === 0) {
+        Alert.alert('Error', 'Please select at least one career choice.');
+        return;
+      }
+      
+      if (!profileData.college_name.trim() || !profileData.college_email.trim()) {
+        Alert.alert('Error', 'College name and email are required.');
+        return;
+      }
+      
+      // Update profile
+      await updateUserProfile(profileData);
+      
+      // Refresh user data to ensure everything is updated
+      await refreshUserData();
+      
+      // Reload progress data
+      await loadProgressData();
+      
+      setIsEditing(false);
+      Alert.alert('Success', 'Profile updated successfully!');
     } catch (error) {
       console.error('Error updating profile:', error);
-      Alert.alert('Error', 'Failed to update profile. Please try again.');
+      Alert.alert('Error', error.message || 'Failed to update profile. Please try again.');
     } finally {
       setIsLoading(false);
     }
@@ -205,13 +245,34 @@ export default function ProfileScreen() {
               <Text style={styles.statLabel}>XP</Text>
             </View>
             <View style={styles.statItem}>
-              <Text style={styles.statValue}>{currentLevel}</Text>
+              <Text style={styles.statValue}>{level}</Text>
               <Text style={styles.statLabel}>Level</Text>
             </View>
           <View style={styles.statItem}>
                             <Text style={styles.statValue}>{profileCompletionPercentage}%</Text>
             <Text style={styles.statLabel}>Complete</Text>
           </View>
+        </View>
+
+        {/* XP Progress Bar */}
+        <View style={styles.progressSection}>
+          <View style={styles.progressHeader}>
+            <Text style={styles.progressTitle}>XP Progress</Text>
+            <Text style={styles.progressValue}>{getProgressPercentage()}%</Text>
+          </View>
+          <View style={styles.progressBarContainer}>
+            <View style={styles.progressBar}>
+              <View 
+                style={[
+                  styles.progressFill, 
+                  { width: `${getProgressPercentage()}%` }
+                ]} 
+              />
+            </View>
+          </View>
+          <Text style={styles.progressDetails}>
+            {currentLevelXP} / 100 XP • Level {level}
+          </Text>
         </View>
 
         {/* Profile Form */}
@@ -686,5 +747,49 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '600',
     color: '#fff',
+  },
+  progressSection: {
+    backgroundColor: 'rgba(0, 255, 0, 0.1)',
+    borderRadius: 15,
+    padding: 20,
+    marginBottom: 30,
+  },
+  progressHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 15,
+  },
+  progressTitle: {
+    color: '#fff',
+    fontSize: 18,
+    fontWeight: 'bold',
+  },
+  progressValue: {
+    color: '#00ff00',
+    fontSize: 18,
+    fontWeight: 'bold',
+  },
+  progressBarContainer: {
+    height: 10,
+    backgroundColor: '#fff',
+    borderRadius: 5,
+    overflow: 'hidden',
+    marginBottom: 10,
+  },
+  progressBar: {
+    height: '100%',
+    backgroundColor: '#00ff00',
+    borderRadius: 5,
+  },
+  progressFill: {
+    height: '100%',
+    backgroundColor: '#00ff00',
+    borderRadius: 5,
+  },
+  progressDetails: {
+    color: '#fff',
+    fontSize: 14,
+    textAlign: 'center',
   },
 });

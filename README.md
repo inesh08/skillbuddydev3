@@ -1,221 +1,82 @@
-# Skill Buddy - Interview Practice App
+# SkillBuddy - Interview Practice App
 
-A comprehensive interview practice application with a React Native frontend and Flask backend, featuring AI-powered interview questions and real-time feedback.
+A comprehensive React Native application for interview practice with backend integration, social features, and progress tracking.
 
-## 🏗️ Architecture
+## 📚 Documentation
 
-- **Frontend**: React Native with Expo
-- **Backend**: Flask API with Firebase integration
-- **Database**: Firebase Firestore
-- **Authentication**: Firebase Auth + JWT tokens
+All project documentation has been organized in the `read_me/` folder for better organization:
+
+### 🚀 Getting Started
+- **[Setup Guide](read_me/SETUP_GUIDE.md)** - Complete setup instructions
+- **[Backend Setup](read_me/BACKEND_SETUP_COMPLETE.md)** - Backend configuration
+- **[Current Status](read_me/CURRENT_STATUS.md)** - Project status overview
+
+### 🔧 Core Features
+- **[Onboarding Integration](read_me/ONBOARDING_INTEGRATION.md)** - User onboarding flow
+- **[Onboarding Summary](read_me/ONBOARDING_SUMMARY.md)** - Onboarding feature overview
+- **[Social Links Persistence](read_me/SOCIAL_LINKS_PERSISTENCE.md)** - Social media integration
+- **[Progress Bars Integration](read_me/PROGRESS_BARS_INTEGRATION_SUMMARY.md)** - Progress tracking
+
+### 🛠 Technical Details
+- **[Community Integration](read_me/COMMUNITY_INTEGRATION_SUMMARY.md)** - Community features
+- **[Linking Summary](read_me/LINKING_SUMMARY.md)** - App linking configuration
+- **[Onboarding Optimization](read_me/ONBOARDING_OPTIMIZATION_SUMMARY.md)** - Performance optimizations
+
+### 🔧 Bug Fixes & Improvements
+- **[Onboarding Progress Fix](read_me/ONBOARDING_PROGRESS_FIX.md)** - Progress bar fixes
+- **[Onboarding User-Specific Fix](read_me/ONBOARDING_USER_SPECIFIC_FIX.md)** - User data isolation
+- **[Onboarding Zustand Integration](read_me/ONBOARDING_ZUSTAND_INTEGRATION_COMPLETE.md)** - State management
+
+## 🏗 Project Structure
+
+```
+skilbuddydev1-main/
+├── interview-app/          # React Native frontend
+├── skill-buddy-backend/    # Flask backend
+├── community_backend/      # Community microservices
+├── read_me/               # 📚 All documentation
+└── README.md              # This file
+```
 
 ## 🚀 Quick Start
 
-### Prerequisites
+1. **Clone the repository**
+2. **Follow the [Setup Guide](read_me/SETUP_GUIDE.md)**
+3. **Start the backend servers**
+4. **Run the React Native app**
 
-- Node.js (v16 or higher)
-- Python 3.8+
-- Expo CLI (`npm install -g @expo/cli`)
-- iOS Simulator or Android Emulator (for mobile testing)
+## ✨ Key Features
 
-### Installation
+- **Interview Practice** - Realistic interview questions
+- **Progress Tracking** - XP and level system
+- **Social Integration** - GitHub, LinkedIn, portfolio links
+- **Community Features** - Posts, likes, replies
+- **Onboarding Flow** - Guided user setup
+- **Profile Management** - Complete user profiles
 
-1. **Clone and setup the project:**
-   ```bash
-   # The project is already set up with both frontend and backend
-   ```
+## 🔧 Tech Stack
 
-2. **Install dependencies:**
-   ```bash
-   # Backend dependencies (already installed)
-   cd skill-buddy-backend
-   source venv/bin/activate
-   pip install -r requirements.txt
-   
-   # Frontend dependencies (already installed)
-   cd ../interview-app
-   npm install
-   ```
+- **Frontend**: React Native, Expo
+- **Backend**: Flask, Firebase
+- **State Management**: Zustand
+- **Database**: Firestore
+- **Authentication**: Custom JWT system
 
-3. **Configure Firebase:**
-   - Ensure `serviceAccountKey.json` is present in the backend directory
-   - Update Firebase configuration in `skill-buddy-backend/config/firebase_config.py` if needed
+## 📱 Screenshots
 
-### Running the Application
-
-#### Option 1: Use the startup script (Recommended)
-```bash
-./start_dev.sh
-```
-
-This will start both the backend and frontend servers automatically.
-
-#### Option 2: Manual startup
-
-**Start Backend:**
-```bash
-cd skill-buddy-backend
-source venv/bin/activate
-python app.py
-```
-
-**Start Frontend (in a new terminal):**
-```bash
-cd interview-app
-npm start
-```
-
-## 📱 Frontend (React Native)
-
-### Features
-- User authentication (login/signup)
-- Career path selection
-- Interactive interview sessions
-- Real-time feedback and scoring
-- Progress tracking and XP system
-- Beautiful animations and UI
-
-### Key Components
-- `screens/`: Main application screens
-- `components/`: Reusable UI components
-- `services/`: API service layer
-- `context/`: React context for state management
-- `navigation/`: Navigation configuration
-
-### API Configuration
-The frontend is configured to connect to the backend at `http://192.168.1.4:5000/api`. Update this in `services/apiService.js` if your IP changes.
-
-## 🔧 Backend (Flask)
-
-### Features
-- RESTful API endpoints
-- Firebase integration
-- JWT authentication
-- Rate limiting
-- CORS configuration
-- Interview question management
-
-### Key Endpoints
-- `POST /api/auth/register` - User registration
-- `POST /api/auth/login` - User login
-- `GET /api/interview/questions/{career_path}` - Get interview questions
-- `POST /api/interview/start` - Start interview session
-- `POST /api/interview/response` - Submit interview response
-- `POST /api/interview/end` - End interview session
-
-### Configuration
-- Update CORS origins in `app.py` if needed
-- Configure Firebase credentials in `config/firebase_config.py`
-- Set environment variables for production deployment
-
-## 🔗 API Integration
-
-The frontend and backend are linked through:
-
-1. **API Service Layer** (`interview-app/services/apiService.js`)
-   - Handles all HTTP requests to the backend
-   - Manages authentication tokens
-   - Provides error handling and logging
-
-2. **CORS Configuration** (`skill-buddy-backend/app.py`)
-   - Allows requests from frontend development servers
-   - Configured for both localhost and network IP addresses
-
-3. **Authentication Flow**
-   - Frontend sends credentials to backend
-   - Backend validates with Firebase
-   - JWT tokens are issued for subsequent requests
-
-## 🛠️ Development
-
-### Backend Development
-```bash
-cd skill-buddy-backend
-source venv/bin/activate
-python app.py
-```
-
-### Frontend Development
-```bash
-cd interview-app
-npm start
-```
-
-### Testing the Connection
-1. Start both servers
-2. Open the Expo app on your device/simulator
-3. Try to register/login - this will test the API connection
-4. Check the backend console for incoming requests
-
-## 📊 Monitoring
-
-### Backend Logs
-- Check the terminal where the backend is running
-- Look for request logs and error messages
-- Firebase connection status is logged on startup
-
-### Frontend Logs
-- Use Expo DevTools for debugging
-- Check the browser console when using Expo web
-- API requests are logged in the console
-
-## 🔧 Troubleshooting
-
-### Common Issues
-
-1. **Connection Refused**
-   - Ensure backend is running on port 5000
-   - Check if IP address in `apiService.js` is correct
-   - Verify CORS configuration
-
-2. **Firebase Errors**
-   - Check if `serviceAccountKey.json` is present
-   - Verify Firebase project configuration
-   - Ensure Firebase Admin SDK is properly initialized
-
-3. **Frontend Build Issues**
-   - Clear npm cache: `npm cache clean --force`
-   - Delete node_modules and reinstall: `rm -rf node_modules && npm install`
-   - Reset Expo cache: `expo start -c`
-
-4. **Backend Import Errors**
-   - Ensure virtual environment is activated
-   - Reinstall dependencies: `pip install -r requirements.txt`
-
-## 🚀 Deployment
-
-### Backend Deployment
-- Configure for production (update CORS, secrets, etc.)
-- Use Gunicorn for production server
-- Set up environment variables
-
-### Frontend Deployment
-- Build for production: `expo build`
-- Configure for app store deployment
-- Update API endpoints for production
-
-## 📝 Environment Variables
-
-Create a `.env` file in the backend directory:
-```env
-SECRET_KEY=your-secret-key
-JWT_SECRET=your-jwt-secret
-FIREBASE_PROJECT_ID=your-project-id
-GOOGLE_CLIENT_ID=your-google-client-id
-```
+[Add screenshots here]
 
 ## 🤝 Contributing
 
 1. Fork the repository
 2. Create a feature branch
 3. Make your changes
-4. Test thoroughly
-5. Submit a pull request
+4. Submit a pull request
 
 ## 📄 License
 
-This project is licensed under the MIT License.
+[Add license information]
 
 ---
 
-**Happy Interviewing! 🎯** 
+**For detailed documentation, check the `read_me/` folder! 📚** 

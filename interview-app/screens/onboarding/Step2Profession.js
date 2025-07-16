@@ -9,38 +9,46 @@ import {
   ScrollView,
   Alert,
   ActivityIndicator,
+  Platform,
+  BackHandler,
 } from 'react-native';
 import ProgressBar from '../../components/atoms/ProgressBar';
 import AnimatedBackground from '../../components/AnimatedBackground';
 import PageLayout from '../../components/layouts/PageLayout';
 import GreenButton from '../../components/atoms/GreenButton';
 import { useOnboardingStore } from '../../services/onboardingStore';
+import { useAuthStore } from '../../services/Zuststand';
 import { useProgress } from '../../hooks/useProgress';
 
 export default function Step2Profession({ navigation }) {
   const [selectedProfession, setSelectedProfession] = useState(null);
   const [localError, setLocalError] = useState('');
   
+  const { user } = useAuthStore();
   const { 
     onboardingData, 
     isLoading, 
     error, 
     saveStep2Data, 
     loadOnboardingData,
+    setUserId,
     clearError 
   } = useOnboardingStore();
   
   const { getOnboardingProgress } = useProgress();
 
   useEffect(() => {
-    // Load saved onboarding data
+    // Set user ID in onboarding store when user is available
+    if (user?.id) {
+      setUserId(user.id);
+    }
+    
+    // Load saved onboarding data (but don't pre-fill)
     loadOnboardingData();
     
-    // Pre-select profession if already saved
-    if (onboardingData.profession) {
-      setSelectedProfession(onboardingData.profession);
-    }
-  }, []);
+    // Don't pre-select profession - start with no selection
+    setSelectedProfession(null);
+  }, [user?.id]);
 
   useEffect(() => {
     // Clear error when component mounts
@@ -62,7 +70,7 @@ export default function Step2Profession({ navigation }) {
 
   const handleNext = async () => {
     if (!selectedProfession) {
-      setLocalError('Please select one option.');
+      setLocalError('Please select a profession to continue.');
       return;
     }
 
@@ -79,12 +87,10 @@ export default function Step2Profession({ navigation }) {
   };
 
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView style={styles.safeArea}>
       <AnimatedBackground intensity="medium">
         <PageLayout message={"Where are you in your\nCareer Journey"}>
           <View style={styles.innerContainer}>
-            
-            
             <View style={styles.progressContainer}>
               <ProgressBar percent={getOnboardingProgress(2)} />
             </View>
@@ -123,21 +129,21 @@ export default function Step2Profession({ navigation }) {
                 </View>
               </View>
             </ScrollView>
+          </View>
 
-            <View style={styles.buttonContainer}>
-              <GreenButton
-                title={isLoading ? "Saving..." : "Next"}
-                onPress={handleNext}
-                disabled={isLoading}
+          <View style={styles.buttonContainer}>
+            <GreenButton
+              title={isLoading ? "Saving..." : "Next"}
+              onPress={handleNext}
+              disabled={isLoading}
+            />
+            {isLoading && (
+              <ActivityIndicator 
+                size="small" 
+                color="#00ff00" 
+                style={styles.loadingIndicator}
               />
-              {isLoading && (
-                <ActivityIndicator 
-                  size="small" 
-                  color="#00ff00" 
-                  style={styles.loadingIndicator}
-                />
-              )}
-            </View>
+            )}
           </View>
         </PageLayout>
       </AnimatedBackground>
@@ -146,7 +152,7 @@ export default function Step2Profession({ navigation }) {
 }
 
 const styles = StyleSheet.create({
-  container: {
+  safeArea: {
     flex: 1,
     backgroundColor: '#000',
   },
@@ -155,13 +161,11 @@ const styles = StyleSheet.create({
     backgroundColor: 'transparent',
     paddingHorizontal: 20,
     paddingTop: 30,
-    paddingBottom: 20,
   },
-
   progressContainer: {
     alignItems: 'center',
     marginTop: 0,
-    marginBottom: 10,
+    marginBottom: 40,
   },
   scrollContainer: {
     flexGrow: 1,
@@ -202,9 +206,11 @@ const styles = StyleSheet.create({
   },
   iconFrameDefault: {
     borderColor: '#fff',
+    backgroundColor: 'transparent',
   },
   iconFrameSelected: {
     borderColor: '#00ff00',
+    backgroundColor: 'rgba(0, 255, 0, 0.1)',
   },
   icon: {
     width: 50,
@@ -214,18 +220,20 @@ const styles = StyleSheet.create({
   professionLabel: {
     color: '#fff',
     fontSize: 16,
-  },
-  buttonContainer: {
-    width: '100%',
-    alignItems: 'center',
-    marginBottom: 30,
+    textAlign: 'center',
   },
   errorText: {
     color: '#ff4444',
-    fontSize: 15,
-    marginTop: 10,
+    fontSize: 14,
     textAlign: 'center',
-    fontWeight: 'bold',
+    marginTop: 20,
+  },
+  buttonContainer: {
+    position: 'absolute',
+    bottom: Platform.OS === 'ios' ? 50 : 30,
+    left: 20,
+    right: 20,
+    alignItems: 'center',
   },
   loadingIndicator: {
     marginTop: 10,

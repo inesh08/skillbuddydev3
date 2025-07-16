@@ -13,14 +13,14 @@ import {
   Linking,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import { useAuthStore } from '../services/Zuststand';
 import apiService from '../services/apiService';
 import AnimatedBackground from '../components/AnimatedBackground';
 
 export default function SocialLinksScreen() {
   const navigation = useNavigation();
-  const { user, isAuthenticated } = useAuthStore();
+  const { user, isAuthenticated, refreshUserData } = useAuthStore();
   const [isLoading, setIsLoading] = useState(false);
   const [socialLinks, setSocialLinks] = useState({
     github: '',
@@ -28,13 +28,23 @@ export default function SocialLinksScreen() {
     instagram: '',
     resume: '',
     portfolio: '',
+    website: '',
   });
 
   useEffect(() => {
-    if (isAuthenticated()) {
+    if (isAuthenticated() && user?.id) {
       loadSocialLinks();
     }
-  }, []);
+  }, [user?.id]);
+
+  // Add focus effect to reload data when screen is focused
+  useFocusEffect(
+    React.useCallback(() => {
+      if (isAuthenticated() && user?.id) {
+        loadSocialLinks();
+      }
+    }, [user?.id])
+  );
 
   const loadSocialLinks = async () => {
     try {
@@ -51,6 +61,7 @@ export default function SocialLinksScreen() {
         instagram: currentSocialLinks.instagram || '',
         resume: currentSocialLinks.resume || '',
         portfolio: currentSocialLinks.portfolio || '',
+        website: currentSocialLinks.website || '',
       });
     } catch (error) {
       console.error('Error loading social links:', error);
@@ -78,6 +89,7 @@ export default function SocialLinksScreen() {
           instagram: socialLinks.instagram.trim(),
           resume: socialLinks.resume.trim(),
           portfolio: socialLinks.portfolio.trim(),
+          website: socialLinks.website.trim(),
         }
       };
       
@@ -86,6 +98,9 @@ export default function SocialLinksScreen() {
       // Update profile with social links
       const response = await apiService.updateProfile(socialLinksData);
       console.log('Social links update response:', response);
+      
+      // Refresh user data to ensure it's updated throughout the app
+      await refreshUserData();
       
       Alert.alert(
         'Success',
@@ -143,6 +158,13 @@ export default function SocialLinksScreen() {
             : `https://${socialLinks.portfolio}`;
         }
         break;
+      case 'website':
+        if (socialLinks.website) {
+          url = socialLinks.website.startsWith('http') 
+            ? socialLinks.website 
+            : `https://${socialLinks.website}`;
+        }
+        break;
     }
     
     if (url) {
@@ -167,6 +189,49 @@ export default function SocialLinksScreen() {
     // If it doesn't start with http, add it for validation
     const urlToValidate = url.startsWith('http') ? url : `https://${url}`;
     
+    try {
+      new URL(urlToValidate);
+      return true;
+    } catch {
+      return false;
+    }
+  };
+
+  const validateSocialUrl = (type, url) => {
+    if (!url) return true; // Empty is valid
+    
+    const urlToValidate = url.startsWith('http') ? url : `https://${url}`;
+    
+    // GitHub validation
+    if (type === 'github') {
+      return urlToValidate.toLowerCase().includes('github');
+    }
+    
+    // LinkedIn validation
+    if (type === 'linkedin') {
+      const linkedinRegex = /^https?:\/\/(www\.)?linkedin\.com\/(in\/[a-zA-Z0-9_-]+\/?|company\/[a-zA-Z0-9_-]+\/?)$/;
+      return linkedinRegex.test(urlToValidate);
+    }
+    
+    // Instagram validation
+    if (type === 'instagram') {
+      const instagramRegex = /^https?:\/\/(www\.)?instagram\.com\/[a-zA-Z0-9._]+\/?$/;
+      return instagramRegex.test(urlToValidate);
+    }
+    
+    // Dribbble validation
+    if (type === 'dribbble') {
+      const dribbbleRegex = /^https?:\/\/(www\.)?dribbble\.com\/[a-zA-Z0-9_-]+\/?$/;
+      return dribbbleRegex.test(urlToValidate);
+    }
+    
+    // Website validation (general)
+    if (type === 'website') {
+      const websiteRegex = /^https?:\/\/(www\.)?[a-zA-Z0-9]([a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(\.[a-zA-Z0-9]([a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*\.[a-zA-Z]{2,6}(\/.*)?$/;
+      return websiteRegex.test(urlToValidate);
+    }
+    
+    // Default URL validation for other types
     try {
       new URL(urlToValidate);
       return true;
@@ -233,7 +298,7 @@ export default function SocialLinksScreen() {
               <TextInput
                 style={[
                   styles.input,
-                  socialLinks.github && !validateUrl(socialLinks.github) && styles.inputError
+                  socialLinks.github && !validateSocialUrl('github', socialLinks.github) && styles.inputError
                 ]}
                 value={socialLinks.github}
                 onChangeText={(text) => handleInputChange('github', text)}
@@ -252,7 +317,7 @@ export default function SocialLinksScreen() {
               </TouchableOpacity>
             </View>
             <Text style={styles.hint}>Enter username or full GitHub URL</Text>
-            {socialLinks.github && !validateUrl(socialLinks.github) && (
+            {socialLinks.github && !validateSocialUrl('github', socialLinks.github) && (
               <Text style={styles.errorText}>Please enter a valid URL</Text>
             )}
           </View>
@@ -264,7 +329,7 @@ export default function SocialLinksScreen() {
               <TextInput
                 style={[
                   styles.input,
-                  socialLinks.linkedin && !validateUrl(socialLinks.linkedin) && styles.inputError
+                  socialLinks.linkedin && !validateSocialUrl('linkedin', socialLinks.linkedin) && styles.inputError
                 ]}
                 value={socialLinks.linkedin}
                 onChangeText={(text) => handleInputChange('linkedin', text)}
@@ -283,7 +348,7 @@ export default function SocialLinksScreen() {
               </TouchableOpacity>
             </View>
             <Text style={styles.hint}>Enter username or full LinkedIn URL</Text>
-            {socialLinks.linkedin && !validateUrl(socialLinks.linkedin) && (
+            {socialLinks.linkedin && !validateSocialUrl('linkedin', socialLinks.linkedin) && (
               <Text style={styles.errorText}>Please enter a valid URL</Text>
             )}
           </View>
@@ -371,6 +436,37 @@ export default function SocialLinksScreen() {
             </View>
             <Text style={styles.hint}>Enter full URL to your portfolio website</Text>
             {socialLinks.portfolio && !validateUrl(socialLinks.portfolio) && (
+              <Text style={styles.errorText}>Please enter a valid URL</Text>
+            )}
+          </View>
+
+          {/* Website */}
+          <View style={styles.inputGroup}>
+            <Text style={styles.label}>Personal Website</Text>
+            <View style={styles.inputContainer}>
+              <TextInput
+                style={[
+                  styles.input,
+                  socialLinks.website && !validateUrl(socialLinks.website) && styles.inputError
+                ]}
+                value={socialLinks.website}
+                onChangeText={(text) => handleInputChange('website', text)}
+                placeholder="https://your-website.com"
+                placeholderTextColor="#666"
+                autoCapitalize="none"
+                autoCorrect={false}
+                editable={!isLoading}
+              />
+              <TouchableOpacity
+                style={styles.actionButton}
+                onPress={() => handleQuickAction('website')}
+                disabled={isLoading}
+              >
+                <Ionicons name="open-outline" size={20} color="#00ff00" />
+              </TouchableOpacity>
+            </View>
+            <Text style={styles.hint}>Enter full URL to your personal website</Text>
+            {socialLinks.website && !validateUrl(socialLinks.website) && (
               <Text style={styles.errorText}>Please enter a valid URL</Text>
             )}
           </View>

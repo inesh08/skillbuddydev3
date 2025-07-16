@@ -1,29 +1,24 @@
 // screens/InterviewResultsScreen.js
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { 
   View, 
   Text, 
-  TouchableOpacity, 
   StyleSheet, 
+  TouchableOpacity,
   ScrollView,
+  SafeAreaView,
+  Dimensions,
+  Animated,
   Alert,
   TextInput,
-  ActivityIndicator,
-  Animated,
-  Dimensions,
-  SafeAreaView
 } from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
+import { Ionicons } from '@expo/vector-icons';
 import { useNavigation, useRoute } from '@react-navigation/native';
-import { useXP } from '../context/XPContext';
-import ConfettiAnimation from '../components/ConfettiAnimation';
+import { Audio } from 'expo-av';
 import AnimatedBackground from '../components/AnimatedBackground';
-// Use expo-av only if available, otherwise gracefully degrade
-let Audio;
-try {
-  Audio = require('expo-av').Audio;
-} catch (e) {
-  Audio = null;
-}
+import ConfettiAnimation from '../components/ConfettiAnimation';
+import { useXPStore } from '../services/xpStore';
 
 const { width } = Dimensions.get('window');
 
@@ -31,7 +26,7 @@ export default function InterviewResultsScreen() {
   const navigation = useNavigation();
   const route = useRoute();
   const { careerPath, responses = [], questions = [] } = route.params || {};
-  const { addXP, getXPRewards } = useXP();
+  const { addXP, getXPRewards } = useXPStore();
   
   const [feedback, setFeedback] = useState('');
   const [rating, setRating] = useState(0);

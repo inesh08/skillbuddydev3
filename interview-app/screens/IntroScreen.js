@@ -101,10 +101,15 @@ export default function PeppyIntroScreen({ navigation }) {
   }, [currentSlide, flipAnim]);
 
   const handleCreateAccount = () => {
+    console.log('Get Started button clicked');
+    console.log('Navigation object:', navigation);
+    console.log('Navigation.navigate function:', navigation?.navigate);
+    
     if (navigation && typeof navigation.navigate === 'function') {
-      navigation.navigate('Signup');
+      console.log('Attempting to navigate to Step1');
+      navigation.navigate('Step1');
     } else {
-      console.log('Create Account clicked');
+      console.log('Navigation not available or navigate function missing');
     }
   };
 
@@ -214,7 +219,7 @@ export default function PeppyIntroScreen({ navigation }) {
       <View style={styles.bottomButtons}>
         <Animatable.View animation="pulse" iterationCount="infinite" delay={1000}>
           <TouchableOpacity style={styles.button} onPress={handleCreateAccount}>
-            <Text style={styles.buttonText}>Create an Account</Text>
+            <Text style={styles.buttonText}>Get Started</Text>
           </TouchableOpacity>
         </Animatable.View>
         <TouchableOpacity onPress={handleLogin}>

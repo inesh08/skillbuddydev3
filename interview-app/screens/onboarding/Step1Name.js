@@ -1,5 +1,5 @@
 // screens/onboarding/Step1Name.js
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useCallback, memo } from 'react';
 import {
   View,
   Text,
@@ -13,35 +13,66 @@ import {
   Platform,
   TouchableWithoutFeedback,
   Keyboard,
+  BackHandler,
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
-import { useOnboarding } from '../../context/OnboardingContext';
+import { useOnboardingStore } from '../../services/onboardingStore';
 import { useAuthStore } from '../../services/Zuststand';
 import AnimatedBackground from '../../components/AnimatedBackground';
 import PageLayout from '../../components/layouts/PageLayout';
 import ProgressBar from '../../components/atoms/ProgressBar';
 import { useProgress } from '../../hooks/useProgress';
 
-export default function Step1Name() {
+const Step1Name = memo(() => {
   const navigation = useNavigation();
   const { user } = useAuthStore();
-  const { saveStep1Data, onboardingData, isLoading, error } = useOnboarding();
+  const { 
+    saveStep1Data, 
+    onboardingData, 
+    isLoading, 
+    error, 
+    loadOnboardingData,
+    setUserId,
+    clearError 
+  } = useOnboardingStore();
   const { getOnboardingProgress } = useProgress();
   const [name, setName] = useState('');
   const [nameError, setNameError] = useState('');
   const inputRef = useRef(null);
 
   useEffect(() => {
-    // Load existing name if available and user is authenticated
-    if (onboardingData.name && user?.id) {
-      setName(onboardingData.name);
-    } else {
-      // Clear name if no user or no onboarding data
-      setName('');
+    // Set user ID in onboarding store when user is available
+    if (user?.id) {
+      setUserId(user.id);
     }
-  }, [onboardingData, user?.id]);
+    
+    // Load existing onboarding data (but don't pre-fill)
+    loadOnboardingData();
+  }, [user?.id, setUserId, loadOnboardingData]);
 
-  const validateName = (inputName) => {
+  useEffect(() => {
+    // Don't pre-fill name - start with empty field
+    setName('');
+  }, []);
+
+  useEffect(() => {
+    // Clear error when component mounts
+    clearError();
+  }, [clearError]);
+
+  // Prevent hardware back button on Android
+  useEffect(() => {
+    const backAction = () => {
+      // Prevent going back
+      return true; // Return true to prevent default behavior
+    };
+
+    const backHandler = BackHandler.addEventListener('hardwareBackPress', backAction);
+
+    return () => backHandler.remove();
+  }, []);
+
+  const validateName = useCallback((inputName) => {
     const trimmedName = inputName.trim();
     
     if (!trimmedName) {
@@ -68,23 +99,26 @@ export default function Step1Name() {
     
     setNameError('');
     return true;
-  };
+  }, []);
 
-  const handleNext = async () => {
+  const handleNext = useCallback(async () => {
     if (!validateName(name)) {
       return;
     }
 
     try {
-      await saveStep1Data(name);
+      await saveStep1Data(name.trim());
       navigation.navigate('Step2');
     } catch (error) {
-      console.error('Error saving name:', error);
-      Alert.alert('Error', 'Failed to save your name. Please try again.');
+      Alert.alert(
+        'Error', 
+        'Failed to save your name. Please check your connection and try again.',
+        [{ text: 'OK' }]
+      );
     }
-  };
+  }, [name, validateName, saveStep1Data, navigation]);
 
-  const handleSkip = () => {
+  const handleSkip = useCallback(() => {
     Alert.alert(
       'Skip Name',
       'Are you sure you want to skip adding your name? You can add it later in your profile.',
@@ -97,16 +131,16 @@ export default function Step1Name() {
         }
       ]
     );
-  };
+  }, [navigation]);
 
-  const handleChangeText = (text) => {
+  const handleChangeText = useCallback((text) => {
     setName(text);
     if (nameError) {
       validateName(text);
     }
-  };
+  }, [nameError, validateName]);
 
-  const handleKeyboardDismiss = () => Keyboard.dismiss();
+  const handleKeyboardDismiss = useCallback(() => Keyboard.dismiss(), []);
 
   const isButtonEnabled = name.trim().length > 0 && !isLoading;
 
@@ -201,7 +235,7 @@ export default function Step1Name() {
       </AnimatedBackground>
     </SafeAreaView>
   );
-}
+});
 
 const styles = StyleSheet.create({
   safeArea: {
@@ -217,84 +251,63 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingTop: 30,
   },
-
   progressContainer: {
     alignItems: 'center',
     marginTop: 0,
-    marginBottom: 40,
-  },
-  headerContainer: {
-    alignItems: 'center',
-    marginBottom: 40,
-  },
-  title: {
-    color: '#fff',
-    fontSize: 28,
-    fontWeight: 'bold',
-    textAlign: 'center',
     marginBottom: 10,
   },
-  subtitle: {
-    color: '#ccc',
-    fontSize: 16,
-    textAlign: 'center',
-    lineHeight: 22,
-  },
   centerSection: {
-    flex: 1,
-    justifyContent: 'flex-start',
+    justifyContent: 'center',
     alignItems: 'center',
     width: '100%',
-    paddingTop: 60,
+    paddingTop: 120,
   },
   input: {
     width: '100%',
     backgroundColor: '#fff',
-    borderRadius: 15,
-    borderWidth: 2,
-    borderColor: '#00ff00',
-    paddingHorizontal: 20,
-    paddingVertical: 18,
-    fontSize: 18,
-    color: '#000',
-    textAlign: 'center',
-  },
-  inputError: {
-    borderColor: '#ff0000',
-  },
-  errorText: {
-    color: '#ff0000',
-    fontSize: 14,
-    textAlign: 'center',
-    marginTop: 8,
-  },
-  errorContainer: {
-    backgroundColor: 'rgba(255, 0, 0, 0.1)',
     borderRadius: 10,
-    padding: 12,
+    borderColor: '#00ff00',
+    borderWidth: 2,
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+    color: '#000',
+    fontSize: 16,
     marginBottom: 20,
   },
+  inputError: {
+    borderColor: '#ff4444',
+  },
+  errorText: {
+    color: '#ff4444',
+    fontSize: 14,
+    marginTop: 10,
+    textAlign: 'center',
+  },
+  errorContainer: {
+    marginTop: 20,
+    paddingHorizontal: 20,
+  },
   errorMessage: {
-    color: '#ff0000',
+    color: '#ff4444',
     fontSize: 14,
     textAlign: 'center',
   },
   absoluteButtonContainer: {
     position: 'absolute',
-    bottom: Platform.OS === 'ios' ? 20 : 30,
+    bottom: Platform.OS === 'ios' ? 50 : 30,
     left: 0,
     right: 0,
     alignItems: 'center',
     justifyContent: 'center',
-    paddingHorizontal: 20,
   },
   nextButton: {
     backgroundColor: '#00ff00',
-    paddingVertical: 18,
-    borderRadius: 30,
-    alignItems: 'center',
+    paddingHorizontal: 40,
+    paddingVertical: 15,
+    borderRadius: 25,
     marginBottom: 15,
-    width: '100%',
+    minWidth: 120,
+    alignItems: 'center',
   },
   nextButtonDisabled: {
     backgroundColor: '#666',
@@ -307,16 +320,14 @@ const styles = StyleSheet.create({
   loadingContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 10,
   },
   skipButton: {
-    backgroundColor: 'transparent',
-    paddingVertical: 12,
-    alignItems: 'center',
+    paddingVertical: 10,
   },
   skipButtonText: {
     color: '#999',
     fontSize: 16,
-    textDecorationLine: 'underline',
   },
 });
+
+export default Step1Name;
